@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { fetch } from 'undici';
+import { JSDOM } from 'jsdom';
 import { FeedValidatorService } from './feed-validator.service';
 import { FeedDiscoveryService } from './feed-discovery.service';
 import { RssParserService } from './rss-parser.service';
@@ -88,15 +89,8 @@ export class FeedService {
     // Verifica se é um vídeo do YouTube
     const youtubeVideoId = this.thumbnailExtractor.extractYouTubeVideoId(url);
     if (youtubeVideoId) {
-      // Para vídeos do YouTube, extraímos informações básicas
-      const thumbnail = `https://img.youtube.com/vi/${youtubeVideoId}/maxresdefault.jpg`;
-      return {
-        title: 'Vídeo do YouTube',
-        link: url,
-        content:
-          'Conteúdo de vídeo do YouTube não pode ser extraído via scraping.',
-        thumbnail,
-      };
+      // Para vídeos do YouTube, extraímos informações da página
+      return await this.extractYouTubeVideoInfo(url, youtubeVideoId);
     }
 
     // Para outros conteúdos, extrai usando Readability
@@ -117,5 +111,60 @@ export class FeedService {
       content,
       thumbnail,
     };
+  }
+
+  /**
+   * Extrai informações de um vídeo do YouTube
+   */
+  private async extractYouTubeVideoInfo(
+    url: string,
+    videoId: string,
+  ): Promise<ContentExtractionResult> {
+    try {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(10000),
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const html = await res.text();
+      const dom = new JSDOM(html, { url });
+      const document = dom.window.document;
+
+      // Extrai título do vídeo
+      let title = 'Vídeo do YouTube';
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      const titleTag = document.querySelector('title');
+
+      if (ogTitle?.getAttribute('content')) {
+        title = ogTitle.getAttribute('content')!.replace(' - YouTube', '');
+      } else if (titleTag?.textContent) {
+        title = titleTag.textContent.replace(' - YouTube', '');
+      }
+
+      // Thumbnail em alta qualidade
+      const thumbnail = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+
+      return {
+        title,
+        link: url,
+        content: '',
+        thumbnail,
+      };
+    } catch (error) {
+      // Fallback em caso de erro
+      return {
+        title: 'Vídeo do YouTube',
+        link: url,
+        content: '',
+        thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      };
+    }
   }
 }

@@ -1,73 +1,363 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# RSS Feed Processor com Autenticação Supabase
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Um serviço NestJS para processar feeds RSS com autenticação JWT do Supabase.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 🚀 Funcionalidades
 
-## Description
+- **Validação de Feeds RSS**: Valida URLs de feeds e retorna os últimos 5 itens
+- **Extração de Conteúdo**: Extrai conteúdo limpo de artigos usando Mozilla Readability
+- **Autenticação JWT**: Proteção de rotas usando tokens JWT do Supabase
+- **Descoberta Automática de Feeds**: Detecta feeds RSS/Atom automaticamente
+- **Extração de Thumbnails**: Extrai imagens de destaque dos artigos
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🔒 Autenticação
 
-## Installation
+Todas as rotas da API são protegidas por autenticação JWT do Supabase. Você precisa incluir um token válido no header `Authorization` de suas requisições.
+
+### Como obter um token JWT do Supabase
+
+1. Faça login no seu projeto Supabase
+2. Use a função `signInWithEmail` ou `signInWithPassword` do cliente Supabase
+3. O token será retornado na propriedade `access_token`
+
+### Como usar o token
+
+Inclua o token no header Authorization:
+
+```
+Authorization: Bearer <seu-jwt-token>
+```
+## 📦 Instalação
 
 ```bash
-$ pnpm install
+# Clone o repositório
+git clone <repo-url>
+cd rss-feed-processor
+
+# Instale as dependências
+pnpm install
+
+# Configure as variáveis de ambiente
+cp .env.example .env
 ```
 
-## Running the app
+## ⚙️ Configuração
+
+### Variáveis de Ambiente
+
+Edite o arquivo `.env` com suas configurações:
 
 ```bash
-# development
-$ pnpm run start
+# Porta da aplicação
+PORT=3000
 
-# watch mode
-$ pnpm run start:dev
+# Timeouts (em milissegundos)
+RSS_FETCH_TIMEOUT=5000
+WEBSITE_FETCH_TIMEOUT=10000
+CONTENT_FETCH_TIMEOUT=15000
 
-# production mode
-$ pnpm run start:prod
+# User Agent para requisições HTTP
+USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+# Máximo de itens a processar por feed
+MAX_FEED_ITEMS=5
+
+# Configuração do Supabase (OBRIGATÓRIO)
+SUPABASE_JWT_SECRET=your-supabase-jwt-secret-here
 ```
 
-## Test
+### Como obter a chave JWT do Supabase
+
+1. Acesse o [painel do Supabase](https://app.supabase.com)
+2. Selecione seu projeto
+3. Vá para **Settings** > **API**
+4. Copie o valor em **JWT Secret**
+5. Cole no arquivo `.env` na variável `SUPABASE_JWT_SECRET`
+
+## 🏃‍♂️ Executando a aplicação
 
 ```bash
-# unit tests
-$ pnpm run test
+# Desenvolvimento
+pnpm run start:dev
 
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+# Produção
+pnpm run build
+pnpm run start:prod
 ```
 
-## Support
+A aplicação estará disponível em `http://localhost:3000`
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 📡 Endpoints da API
 
-## Stay in touch
+### 1. Validar Feed RSS
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Valida um feed RSS e retorna os últimos 5 itens.
 
-## License
+**Endpoint:** `GET /feed/validate`
 
-Nest is [MIT licensed](LICENSE).
+**Parâmetros:**
+- `url` (query, obrigatório): URL do feed RSS
+
+**Headers:**
+```
+Authorization: Bearer <jwt-token>
+```
+
+**Exemplo de requisição:**
+```bash
+curl -X GET "http://localhost:3000/feed/validate?url=https://example.com/feed.xml" \
+  -H "Authorization: Bearer <seu-jwt-token>"
+```
+
+**Resposta de sucesso:**
+```json
+{
+  "success": true,
+  "user": {
+    "id": "user-uuid",
+    "email": "user@example.com"
+  },
+  "data": {
+    "title": "Blog Example",
+    "description": "Descrição do blog",
+    "link": "https://example.com",
+    "feedUrl": "https://example.com/feed.xml",
+    "items": [
+      {
+        "title": "Título do artigo",
+        "link": "https://example.com/article-1",
+        "pubDate": "2025-06-19T10:00:00.000Z",
+        "creator": "Autor",
+        "summary": "Resumo do artigo...",
+        "thumbnail": "https://example.com/image.jpg"
+      }
+    ]
+  }
+}
+```
+
+### 2. Extrair Conteúdo
+
+Extrai o conteúdo limpo de uma URL específica.
+
+**Endpoint:** `GET /feed/extract`
+
+**Parâmetros:**
+- `url` (query, obrigatório): URL do artigo
+
+**Headers:**
+```
+Authorization: Bearer <jwt-token>
+```
+
+**Exemplo de requisição:**
+```bash
+curl -X GET "http://localhost:3000/feed/extract?url=https://example.com/article" \
+  -H "Authorization: Bearer <seu-jwt-token>"
+```
+
+**Resposta de sucesso:**
+```json
+{
+  "success": true,
+  "user": {
+    "id": "user-uuid",
+    "email": "user@example.com"
+  },
+  "data": {
+    "title": "Título do artigo",
+    "content": "Conteúdo limpo do artigo...",
+    "textContent": "Versão em texto puro...",
+    "length": 1500,
+    "excerpt": "Resumo do artigo...",
+    "siteName": "Nome do site",
+    "thumbnail": "https://example.com/image.jpg"
+  }
+}
+```
+
+## 🔐 Autenticação com Supabase
+
+### Exemplo com JavaScript/TypeScript
+
+```typescript
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  'https://your-project.supabase.co',
+  'your-anon-key'
+)
+
+// Fazer login
+const { data, error } = await supabase.auth.signInWithPassword({
+  email: 'user@example.com',
+  password: 'password'
+})
+
+if (data.session) {
+  const token = data.session.access_token
+  
+  // Usar o token nas requisições
+  const response = await fetch('http://localhost:3000/feed/validate?url=https://example.com/feed.xml', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+  
+  const result = await response.json()
+  console.log(result)
+}
+```
+
+### Exemplo com Python
+
+```python
+import requests
+from supabase import create_client, Client
+
+# Configurar cliente Supabase
+supabase: Client = create_client(
+    "https://your-project.supabase.co", 
+    "your-anon-key"
+)
+
+# Fazer login
+response = supabase.auth.sign_in_with_password({
+    "email": "user@example.com",
+    "password": "password"
+})
+
+if response.session:
+    token = response.session.access_token
+    
+    # Usar o token nas requisições
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    response = requests.get(
+        "http://localhost:3000/feed/validate",
+        params={"url": "https://example.com/feed.xml"},
+        headers=headers
+    )
+    
+    print(response.json())
+```
+
+## 🛠️ Desenvolvimento
+
+### Estrutura do Projeto
+
+```
+src/
+├── auth/                     # Módulo de autenticação
+│   ├── decorators/          # Decorators personalizados
+│   │   └── current-user.decorator.ts
+│   ├── guards/              # Guards de autenticação
+│   │   └── supabase-jwt-auth.guard.ts
+│   ├── strategies/          # Estratégias do Passport
+│   │   └── supabase-jwt.strategy.ts
+│   ├── auth.module.ts       # Módulo de autenticação
+│   └── auth.service.ts      # Serviço de autenticação
+├── feed/                    # Módulo de feeds
+│   ├── dto/                 # Data Transfer Objects
+│   ├── interfaces/          # Interfaces TypeScript
+│   ├── services/            # Serviços de negócio
+│   ├── feed.controller.ts   # Controller principal
+│   └── feed.module.ts       # Módulo de feeds
+├── app.module.ts            # Módulo principal
+└── main.ts                  # Arquivo de entrada
+```
+
+### Scripts Disponíveis
+
+```bash
+# Desenvolvimento
+pnpm run start:dev
+
+# Build
+pnpm run build
+
+# Testes
+pnpm run test
+pnpm run test:e2e
+
+# Linting
+pnpm run lint
+pnpm run format
+```
+
+## 🚨 Tratamento de Erros
+
+### Erros de Autenticação
+
+- **401 Unauthorized**: Token inválido, expirado ou ausente
+- **403 Forbidden**: Token válido mas sem permissões suficientes
+
+### Erros de Validação
+
+- **400 Bad Request**: URL inválida ou parâmetros incorretos
+- **404 Not Found**: Feed não encontrado
+- **500 Internal Server Error**: Erro interno do servidor
+
+### Exemplo de resposta de erro
+
+```json
+{
+  "success": false,
+  "message": "Token inválido"
+}
+```
+
+## 📝 Logs
+
+A aplicação registra automaticamente:
+- Tentativas de autenticação
+- Validações de feed
+- Extrações de conteúdo
+- Erros e exceções
+
+## 🔧 Configurações Avançadas
+
+### Timeouts
+
+Você pode ajustar os timeouts para diferentes operações:
+
+```bash
+RSS_FETCH_TIMEOUT=5000      # Timeout para buscar feeds RSS
+WEBSITE_FETCH_TIMEOUT=10000 # Timeout para buscar páginas web
+CONTENT_FETCH_TIMEOUT=15000 # Timeout para extrair conteúdo
+```
+
+### User Agent
+
+Configure o User Agent usado nas requisições HTTP:
+
+```bash
+USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+```
+
+## 🤝 Contribuindo
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT.
+
+## 📞 Suporte
+
+Se você encontrar algum problema ou tiver dúvidas:
+
+1. Verifique se a variável `SUPABASE_JWT_SECRET` está configurada corretamente
+2. Confirme que o token JWT não expirou
+3. Verifique os logs da aplicação para mais detalhes
+
+## 🔗 Links Úteis
+
+- [Documentação do NestJS](https://docs.nestjs.com/)
+- [Documentação do Supabase](https://supabase.com/docs)
+- [Documentação do Passport JWT](http://www.passportjs.org/packages/passport-jwt/)
+- [Mozilla Readability](https://github.com/mozilla/readability)
