@@ -120,6 +120,7 @@ export class FeedService {
     url: string,
     videoId: string,
   ): Promise<ContentExtractionResult> {
+    console.log(`Extraindo informações do vídeo do YouTube: ${videoId}`);
     try {
       const res = await fetch(url, {
         signal: AbortSignal.timeout(10000),
