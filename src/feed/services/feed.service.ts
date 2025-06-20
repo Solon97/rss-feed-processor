@@ -142,7 +142,8 @@ export class FeedService {
       let title = 'Vídeo do YouTube';
       const ogTitle = document.querySelector('meta[property="og:title"]');
       const titleTag = document.querySelector('title');
-
+      console.log(`Título TAG: ${titleTag?.textContent}`);
+      console.log(`Título OG: ${ogTitle.getAttribute('content')}`);
       if (ogTitle?.getAttribute('content')) {
         title = ogTitle.getAttribute('content')!.replace(' - YouTube', '');
       } else if (titleTag?.textContent) {
