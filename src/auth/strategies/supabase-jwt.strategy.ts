@@ -35,12 +35,23 @@ export class SupabaseJwtStrategy extends PassportStrategy(
       // Verificar se o token não expirou
       const now = Math.floor(Date.now() / 1000);
       if (payload.exp < now) {
-        throw new UnauthorizedException('Token expirado');
+        throw new UnauthorizedException({
+          error: 'TOKEN_EXPIRED',
+          message: 'Token de autenticação expirado',
+          details: 'Faça login novamente para obter um novo token',
+        });
       }
 
       return userInfo;
     } catch (error) {
-      throw new UnauthorizedException('Token inválido');
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException({
+        error: 'INVALID_TOKEN',
+        message: 'Token de autenticação inválido',
+        details: 'Verifique se o token está correto e não foi alterado',
+      });
     }
   }
 }

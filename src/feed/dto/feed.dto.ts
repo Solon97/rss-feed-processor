@@ -17,3 +17,12 @@ export class ExtractContentDto {
   @IsNotEmpty({ message: 'URL é obrigatória' })
   url: string;
 }
+
+export class CreateUserFeedDto {
+  @IsUrl(
+    { require_protocol: true },
+    { message: 'URL deve ser uma URL válida com protocolo (http/https)' },
+  )
+  @IsNotEmpty({ message: 'URL é obrigatória' })
+  url: string;
+}

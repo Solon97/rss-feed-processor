@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { fetch } from 'undici';
+import {
+  FeedTimeoutException,
+  FeedNetworkException,
+} from '../../common/exceptions/feed.exceptions';
 
 @Injectable()
 export class FeedValidatorService {
@@ -16,7 +20,9 @@ export class FeedValidatorService {
         },
       });
 
-      if (!res.ok) return false;
+      if (!res.ok) {
+        throw new FeedNetworkException(url, res.status);
+      }
 
       const content = await res.text();
       return (
@@ -27,6 +33,12 @@ export class FeedValidatorService {
         content.includes('<entry>')
       );
     } catch (error) {
+      if (error instanceof FeedNetworkException) {
+        throw error;
+      }
+      if (error.name?.includes('TimeoutError')) {
+        throw new FeedTimeoutException(url);
+      }
       return false;
     }
   }

@@ -3,6 +3,11 @@ import * as Parser from 'rss-parser';
 import { Feed, FeedItem } from '../interfaces/feed.interface';
 import { ContentExtractorService } from './content-extractor.service';
 import { ThumbnailExtractorService } from './thumbnail-extractor.service';
+import {
+  FeedParsingException,
+  FeedTimeoutException,
+  FeedNetworkException,
+} from '../../common/exceptions/feed.exceptions';
 
 @Injectable()
 export class RssParserService {
@@ -56,7 +61,16 @@ export class RssParserService {
         items: itemsWithThumbnails,
       };
     } catch (error) {
-      throw new Error(`Erro ao processar RSS: ${error.message}`);
+      if (error.name?.includes('TimeoutError')) {
+        throw new FeedTimeoutException(rssUrl);
+      }
+      if (error.message?.includes('Non-whitespace')) {
+        throw new FeedParsingException(rssUrl, 'Formato de feed inválido');
+      }
+      if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+        throw new FeedNetworkException(rssUrl);
+      }
+      throw new FeedParsingException(rssUrl, error.message);
     }
   }
 
@@ -75,7 +89,16 @@ export class RssParserService {
         urls: recentItems.map((item) => item.link).filter(Boolean),
       };
     } catch (error) {
-      throw new Error(`Erro ao obter URLs do feed: ${error.message}`);
+      if (error.name?.includes('TimeoutError')) {
+        throw new FeedTimeoutException(rssUrl);
+      }
+      if (error.message?.includes('Non-whitespace')) {
+        throw new FeedParsingException(rssUrl, 'Formato de feed inválido');
+      }
+      if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+        throw new FeedNetworkException(rssUrl);
+      }
+      throw new FeedParsingException(rssUrl, error.message);
     }
   }
 }

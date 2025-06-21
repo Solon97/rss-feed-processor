@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { fetch } from 'undici';
 import { JSDOM } from 'jsdom';
 import { Readability } from '@mozilla/readability';
+import {
+  ContentNotFoundException,
+  ContentExtractionException,
+  FeedTimeoutException,
+} from '../../common/exceptions/feed.exceptions';
 
 @Injectable()
 export class ContentExtractorService {
@@ -19,7 +24,7 @@ export class ContentExtractorService {
       });
 
       if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        throw new ContentNotFoundException(url);
       }
 
       const html = await res.text();
@@ -28,12 +33,24 @@ export class ContentExtractorService {
       const article = new Readability(document).parse();
 
       if (!article) {
-        throw new Error('Readability não conseguiu extrair o conteúdo.');
+        throw new ContentExtractionException(
+          url,
+          'Readability não conseguiu extrair o conteúdo',
+        );
       }
 
       return article.content;
     } catch (error) {
-      throw new Error(`Erro ao extrair conteúdo: ${error.message}`);
+      if (
+        error instanceof ContentNotFoundException ||
+        error instanceof ContentExtractionException
+      ) {
+        throw error;
+      }
+      if (error.name?.includes('TimeoutError')) {
+        throw new FeedTimeoutException(url);
+      }
+      throw new ContentExtractionException(url, error.message);
     }
   }
 
@@ -57,7 +74,7 @@ export class ContentExtractorService {
       ' / ',
     ];
 
-    let cleanTitle = title.trim();
+    const cleanTitle = title.trim();
 
     // Procura pelo primeiro separador encontrado na ordem de prioridade
     for (const separator of separators) {
