@@ -1,13 +1,15 @@
-import { Injectable } from '@nestjs/common';
 import { fetch } from 'undici';
 import { JSDOM } from 'jsdom';
 
-@Injectable()
-export class ThumbnailExtractorService {
+/**
+ * Utility class for thumbnail extraction operations
+ * Contains pure functions for image extraction from various sources
+ */
+export class ThumbnailExtractorUtil {
   /**
-   * Extrai thumbnail da página web
+   * Extracts thumbnail from web page
    */
-  async getThumbnailFromPage(url: string): Promise<string | null> {
+  static async getThumbnailFromPage(url: string): Promise<string | null> {
     try {
       const res = await fetch(url, {
         signal: AbortSignal.timeout(10000),
@@ -23,7 +25,6 @@ export class ThumbnailExtractorService {
       const dom = new JSDOM(html, { url });
       const document = dom.window.document;
 
-      // Busca meta tags de imagem
       const selectors = [
         'meta[property="og:image"]',
         'meta[name="twitter:image"]',
@@ -51,9 +52,9 @@ export class ThumbnailExtractorService {
   }
 
   /**
-   * Extrai ID do vídeo do YouTube
+   * Extracts YouTube video ID from URL
    */
-  extractYouTubeVideoId(url: string): string | null {
+  static extractYouTubeVideoId(url: string): string | null {
     try {
       const urlObj = new URL(url);
       if (
@@ -72,10 +73,10 @@ export class ThumbnailExtractorService {
   }
 
   /**
-   * Extrai thumbnail do item do feed
+   * Extracts thumbnail from RSS feed item
    */
-  async extractThumbnail(item: any): Promise<string | null> {
-    // 1. Enclosure (comum em RSS)
+  static async extractThumbnailFromFeedItem(item: any): Promise<string | null> {
+    // 1. Enclosure (common in RSS)
     if (item.enclosure?.url) {
       return item.enclosure.url;
     }
@@ -99,19 +100,29 @@ export class ThumbnailExtractorService {
       }
     }
 
-    // 4. Buscar na página do artigo
+    // 4. Search in article page
     if (item.link) {
       try {
         return await this.getThumbnailFromPage(item.link);
       } catch (error) {
-        // Falha silenciosa
+        // Silent failure
       }
     }
 
     return null;
   }
 
-  private resolveImageUrl(imageUrl: string, baseUrl: string): string {
+  /**
+   * Generates YouTube thumbnail URL from video ID
+   */
+  static getYouTubeThumbnail(videoId: string): string {
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  }
+
+  /**
+   * Resolves relative image URL to absolute
+   */
+  private static resolveImageUrl(imageUrl: string, baseUrl: string): string {
     if (imageUrl.startsWith('http')) {
       return imageUrl;
     }

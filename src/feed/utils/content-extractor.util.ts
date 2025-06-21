@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import { fetch } from 'undici';
 import { JSDOM } from 'jsdom';
 import { Readability } from '@mozilla/readability';
@@ -6,14 +5,17 @@ import {
   ContentNotFoundException,
   ContentExtractionException,
   FeedTimeoutException,
-} from '../../common/exceptions/feed.exceptions';
+} from '@/common/exceptions/feed.exceptions';
 
-@Injectable()
-export class ContentExtractorService {
+/**
+ * Utility class for content extraction operations
+ * Contains pure functions and specific content extraction logic
+ */
+export class ContentExtractorUtil {
   /**
-   * Extrai o conteúdo do artigo usando Readability
+   * Extracts article content using Readability
    */
-  async scrapeArticleContent(url: string): Promise<string> {
+  static async scrapeArticleContent(url: string): Promise<string> {
     try {
       const res = await fetch(url, {
         signal: AbortSignal.timeout(15000),
@@ -35,7 +37,7 @@ export class ContentExtractorService {
       if (!article) {
         throw new ContentExtractionException(
           url,
-          'Readability não conseguiu extrair o conteúdo',
+          'Readability could not extract content',
         );
       }
 
@@ -55,12 +57,11 @@ export class ContentExtractorService {
   }
 
   /**
-   * Extrai o título principal removendo sufixos comuns
+   * Extracts main title by removing common suffixes
    */
-  extractMainTitle(title: string): string {
+  static extractMainTitle(title: string): string {
     if (!title) return title;
 
-    // Lista de separadores comuns ordenados por prioridade
     const separators = [
       ' | ',
       ' l ',
@@ -76,21 +77,36 @@ export class ContentExtractorService {
 
     const cleanTitle = title.trim();
 
-    // Procura pelo primeiro separador encontrado na ordem de prioridade
     for (const separator of separators) {
       const separatorIndex = cleanTitle.indexOf(separator);
-      // Se encontrou o separador e não está no início da string
       if (separatorIndex > 0) {
-        // Extrai a primeira parte e remove espaços extras
         const firstPart = cleanTitle.substring(0, separatorIndex).trim();
-        // Só retorna se a primeira parte não estiver vazia
         if (firstPart.length > 0) {
           return firstPart;
         }
       }
     }
 
-    // Se nenhum separador foi encontrado, retorna o título original limpo
     return cleanTitle;
+  }
+
+  /**
+   * Extracts page title from HTML
+   */
+  static async extractPageTitle(url: string): Promise<string> {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new ContentNotFoundException(url);
+      }
+
+      const html = await res.text();
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      return titleMatch
+        ? this.extractMainTitle(titleMatch[1])
+        : 'Título não encontrado';
+    } catch (error) {
+      throw new ContentExtractionException(url, error.message);
+    }
   }
 }

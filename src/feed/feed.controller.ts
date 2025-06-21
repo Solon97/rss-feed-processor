@@ -8,7 +8,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FeedService } from './services/feed.service';
+import { FeedService } from './feed.service';
 import {
   ValidateFeedDto,
   ExtractContentDto,
@@ -35,19 +35,9 @@ export class FeedController {
    */
   @Get('validate')
   @UsePipes(new CustomValidationPipe())
-  async validateFeed(
-    @Query() query: ValidateFeedDto,
-    @CurrentUser() user: UserInfo,
-  ) {
-    const result = await this.feedService.getFeedItems(query.url);
-    return {
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-      },
-      data: result,
-    };
+  async validateFeed(@Query() query: ValidateFeedDto) {
+    const result = await this.feedService.validateFeed(query.url);
+    return result;
   }
 
   /**
@@ -57,19 +47,9 @@ export class FeedController {
    */
   @Get('extract')
   @UsePipes(new CustomValidationPipe())
-  async extractContent(
-    @Query() query: ExtractContentDto,
-    @CurrentUser() user: UserInfo,
-  ) {
+  async extractContent(@Query() query: ExtractContentDto) {
     const result = await this.feedService.extractContent(query.url);
-    return {
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-      },
-      data: result,
-    };
+    return result;
   }
 
   /**
@@ -85,13 +65,6 @@ export class FeedController {
     @CurrentUser() user: UserInfo,
   ) {
     const result = await this.feedService.createUserFeed(user.id, body.url);
-    return {
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-      },
-      data: result,
-    };
+    return result;
   }
 }

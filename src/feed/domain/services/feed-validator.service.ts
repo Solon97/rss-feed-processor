@@ -3,7 +3,7 @@ import { fetch } from 'undici';
 import {
   FeedTimeoutException,
   FeedNetworkException,
-} from '../../common/exceptions/feed.exceptions';
+} from '@/common/exceptions/feed.exceptions';
 
 @Injectable()
 export class FeedValidatorService {

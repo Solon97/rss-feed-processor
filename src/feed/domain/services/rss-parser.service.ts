@@ -1,22 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import * as Parser from 'rss-parser';
-import { Feed, FeedItem } from '../interfaces/feed.interface';
-import { ContentExtractorService } from './content-extractor.service';
-import { ThumbnailExtractorService } from './thumbnail-extractor.service';
+import { Feed, FeedItem } from '@/feed/interfaces/feed.interface';
+import { ContentExtractorUtil } from '@/feed/utils/content-extractor.util';
+import { ThumbnailExtractorUtil } from '@/feed/utils/thumbnail-extractor.util';
 import {
   FeedParsingException,
   FeedTimeoutException,
   FeedNetworkException,
-} from '../../common/exceptions/feed.exceptions';
+} from '@/common/exceptions/feed.exceptions';
 
 @Injectable()
 export class RssParserService {
   private parser: Parser;
 
-  constructor(
-    private readonly contentExtractor: ContentExtractorService,
-    private readonly thumbnailExtractor: ThumbnailExtractorService,
-  ) {
+  constructor() {
     this.parser = new Parser({
       customFields: {
         item: [
@@ -42,22 +39,22 @@ export class RssParserService {
       const itemsWithThumbnails = await Promise.all(
         recentItems.map(async (item): Promise<FeedItem> => {
           const thumbnail =
-            await this.thumbnailExtractor.extractThumbnail(item);
+            await ThumbnailExtractorUtil.extractThumbnailFromFeedItem(item);
           return {
-            title: this.contentExtractor.extractMainTitle(item.title),
+            title: ContentExtractorUtil.extractMainTitle(item.title),
             link: item.link,
             pubDate: item.pubDate || item.isoDate,
             content:
               feedType === 'youtube'
                 ? item['media:group']?.['media:description']?.join('')
-                : await this.contentExtractor.scrapeArticleContent(item.link),
+                : await ContentExtractorUtil.scrapeArticleContent(item.link),
             thumbnail: thumbnail,
           };
         }),
       );
 
       return {
-        title: this.contentExtractor.extractMainTitle(feed.title),
+        title: ContentExtractorUtil.extractMainTitle(feed.title),
         items: itemsWithThumbnails,
       };
     } catch (error) {
@@ -85,7 +82,7 @@ export class RssParserService {
       const recentItems = feed.items.slice(0, 5);
 
       return {
-        title: this.contentExtractor.extractMainTitle(feed.title),
+        title: ContentExtractorUtil.extractMainTitle(feed.title),
         urls: recentItems.map((item) => item.link).filter(Boolean),
       };
     } catch (error) {
