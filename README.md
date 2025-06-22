@@ -74,6 +74,25 @@ SUPABASE_JWT_SECRET=your-supabase-jwt-secret-here
 4. Copie o valor em **JWT Secret**
 5. Cole no arquivo `.env` na variável `SUPABASE_JWT_SECRET`
 
+### 🌐 Configuração de CORS
+
+O servidor possui configuração automática de CORS baseada no ambiente:
+
+**Desenvolvimento:**
+- Permite origens localhost nas portas 3000, 3001, 5173, 4173
+
+**Produção:**
+- Permite domínios de Vercel, Netlify e Render por padrão
+- Para personalizar, edite as origens permitidas em `src/main.ts`
+
+**Para testes ou desenvolvimento com origens específicas:**
+```bash
+# No arquivo .env, adicione:
+CORS_ORIGIN=all  # Permite todas as origens (apenas para teste)
+```
+
+**⚠️ Importante:** Em produção, sempre configure origens específicas para segurança.
+
 ## 🏃‍♂️ Executando a aplicação
 
 ```bash

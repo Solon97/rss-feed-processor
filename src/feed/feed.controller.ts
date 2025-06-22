@@ -182,4 +182,24 @@ export class FeedController {
 
     return { message: 'Timestamp de visualização atualizado com sucesso' };
   }
+
+  /**
+   * Atualiza o timestamp de último acesso para todos os feeds do usuário (rota alternativa)
+   * PUT /feed/user-feeds/update-all-last-viewed
+   * Requer autenticação JWT do Supabase
+   */
+  @Put('user-feeds/update-all-last-viewed')
+  async updateAllFeedsLastViewedAlternative(@CurrentUser() user: UserInfo) {
+    // Mesma implementação da rota anterior para compatibilidade
+    const userFeeds = await this.feedService.getUserFeeds(user.id);
+
+    // Atualizamos todos os feeds ativos do usuário
+    await Promise.all(
+      userFeeds
+        .filter((uf) => uf.is_active)
+        .map((uf) => this.feedService.updateLastViewed(user.id, uf.feed_id)),
+    );
+
+    return { message: 'Timestamp de visualização atualizado com sucesso' };
+  }
 }
