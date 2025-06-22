@@ -11,6 +11,7 @@ import { RssParserService } from './domain/services/rss-parser.service';
 import { FeedValidationApplicationService } from './application/services/feed-validation.service';
 import { ContentExtractionApplicationService } from './application/services/content-extraction.service';
 import { FeedSubscriptionApplicationService } from './application/services/feed-subscription.service';
+import { UserFeedManagementApplicationService } from './application/services/user-feed-management.service';
 
 @Module({
   controllers: [FeedController],
@@ -22,6 +23,7 @@ import { FeedSubscriptionApplicationService } from './application/services/feed-
     FeedValidationApplicationService,
     ContentExtractionApplicationService,
     FeedSubscriptionApplicationService,
+    UserFeedManagementApplicationService,
 
     // Domain Services
     FeedValidatorService,
