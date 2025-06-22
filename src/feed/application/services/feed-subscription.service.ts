@@ -176,8 +176,9 @@ export class FeedSubscriptionApplicationService {
    * Parses an RSS feed and returns complete feed data with content
    */
   async parseFeed(url: string): Promise<Feed> {
+    console.log('==> validation');
     const validation = await this.feedValidation.validateFeed(url);
-
+    console.log('==> validation', validation);
     if (!validation.isValid || !validation.feedUrl) {
       throw new FeedNotFoundException(url);
     }

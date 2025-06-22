@@ -33,7 +33,8 @@ export class RssParserService {
   ): Promise<Feed> {
     try {
       const feed = await this.parser.parseURL(rssUrl);
-
+      console.log('==> feed', feed);
+      console.log('feedType', feedType);
       // Processa apenas os 5 itens mais recentes
       const recentItems = feed.items.slice(0, 5);
       const itemsWithThumbnails = await Promise.all(
@@ -52,12 +53,13 @@ export class RssParserService {
           };
         }),
       );
-
+      console.log('==> itemsWithThumbnails', itemsWithThumbnails);
       return {
         title: ContentExtractorUtil.extractMainTitle(feed.title),
         items: itemsWithThumbnails,
       };
     } catch (error) {
+      console.log('==> error', error);
       if (error.name?.includes('TimeoutError')) {
         throw new FeedTimeoutException(rssUrl);
       }

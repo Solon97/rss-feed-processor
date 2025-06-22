@@ -50,15 +50,7 @@ export class FeedValidatorService {
     try {
       const urlObj = new URL(url);
       const hostname = urlObj.hostname.toLowerCase();
-      const pathname = urlObj.pathname;
-
-      return (
-        (hostname.includes('youtube.com') || hostname.includes('youtu.be')) &&
-        (pathname.includes('/@') ||
-          pathname.includes('/channel/') ||
-          pathname.includes('/c/') ||
-          pathname.includes('/user/'))
-      );
+      return hostname.includes('youtube.com') || hostname.includes('youtu.be');
     } catch (error) {
       return false;
     }

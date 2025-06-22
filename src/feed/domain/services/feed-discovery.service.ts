@@ -83,6 +83,9 @@ export class FeedDiscoveryService {
    * Obtém URL RSS do canal do YouTube
    */
   async getYouTubeChannelRss(channelUrl: string): Promise<string | null> {
+    if (channelUrl.includes('youtube.com/feeds/videos.xml')) {
+      return channelUrl; // Já é um feed RSS válido
+    }
     try {
       const res = await fetch(channelUrl, {
         signal: AbortSignal.timeout(10000),
