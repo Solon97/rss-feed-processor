@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { FeedValidationApplicationService } from './feed-validation.service';
-import { ContentExtractionApplicationService } from './content-extraction.service';
 import {
   UserAlreadySubscribedException,
   FeedNotFoundException,
@@ -11,7 +10,7 @@ import {
   FeedNetworkException,
   FeedParsingException,
 } from '../../../common/exceptions/feed.exceptions';
-import { FeedItemsResponse } from '@/feed/interfaces/feed.interface';
+import { FeedItemsResponse, Feed } from '@/feed/interfaces/feed.interface';
 import { RssParserService } from '@/feed/domain/services/rss-parser.service';
 
 /**
@@ -23,7 +22,6 @@ export class FeedSubscriptionApplicationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly feedValidation: FeedValidationApplicationService,
-    private readonly contentExtraction: ContentExtractionApplicationService,
     private readonly rssParser: RssParserService,
   ) {}
 
@@ -101,8 +99,8 @@ export class FeedSubscriptionApplicationService {
    */
   private async createFeedWithItems(feedUrl: string) {
     try {
-      // Get feed metadata and items
-      const feedData = await this.getFeedItems(feedUrl);
+      // Parse feed and get complete data with content already extracted
+      const feedData = await this.parseFeed(feedUrl);
 
       // Create the feed record
       const feed = await this.prisma.feeds.create({
@@ -115,31 +113,24 @@ export class FeedSubscriptionApplicationService {
         },
       });
 
-      // Extract content for the first 5 items and save them
-      const maxItems = parseInt(process.env.MAX_FEED_ITEMS || '5');
-      const itemsToProcess = feedData.urls.slice(0, maxItems);
-
+      // Save the feed items (content is already extracted by parseFeed)
       const feedItems = [];
-      for (const itemUrl of itemsToProcess) {
+      for (const item of feedData.items) {
         try {
-          const content = await this.contentExtraction.extractContent(itemUrl);
-
           const feedItem = await this.prisma.feed_items.create({
             data: {
               feed_id: feed.id,
-              title: content.title,
-              url: content.link,
-              content: content.content,
-              thumbnail: content.thumbnail,
-              published_at: content.pubDate
-                ? new Date(content.pubDate)
-                : new Date(),
+              title: item.title,
+              url: item.link,
+              content: item.content || '',
+              thumbnail: item.thumbnail,
+              published_at: item.pubDate ? new Date(item.pubDate) : new Date(),
             },
           });
 
           feedItems.push(feedItem);
         } catch (error) {
-          console.error(`Erro ao processar item ${itemUrl}:`, error.message);
+          console.error(`Erro ao salvar item ${item.link}:`, error.message);
           // Continue with next item instead of failing completely
         }
       }
@@ -173,6 +164,29 @@ export class FeedSubscriptionApplicationService {
         title,
         urls,
       };
+    } catch (error) {
+      if (error.name?.includes('TimeoutError')) {
+        throw new FeedTimeoutException(validation.feedUrl);
+      }
+      throw new FeedParsingException(validation.feedUrl, error.message);
+    }
+  }
+
+  /**
+   * Parses an RSS feed and returns complete feed data with content
+   */
+  async parseFeed(url: string): Promise<Feed> {
+    const validation = await this.feedValidation.validateFeed(url);
+
+    if (!validation.isValid || !validation.feedUrl) {
+      throw new FeedNotFoundException(url);
+    }
+
+    try {
+      return await this.rssParser.parseRssFeed(
+        validation.feedUrl,
+        validation.type,
+      );
     } catch (error) {
       if (error.name?.includes('TimeoutError')) {
         throw new FeedTimeoutException(validation.feedUrl);

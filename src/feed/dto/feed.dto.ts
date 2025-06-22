@@ -95,3 +95,12 @@ export class UpdateLastViewedDto {
   // O timestamp será automaticamente definido como o momento atual no servidor
   // Este DTO existe apenas para validação de parâmetros da rota
 }
+
+export class ParseFeedDto {
+  @IsUrl(
+    { require_protocol: true },
+    { message: 'URL deve ser uma URL válida com protocolo (http/https)' },
+  )
+  @IsNotEmpty({ message: 'URL é obrigatória' })
+  url: string;
+}

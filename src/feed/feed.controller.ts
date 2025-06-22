@@ -20,6 +20,7 @@ import {
   UpdateNotificationSettingsDto,
   UserFeedParamsDto,
   GetFeedItemsQueryDto,
+  ParseFeedDto,
 } from './dto/feed.dto';
 import { SupabaseJwtAuthGuard } from '../auth/guards/supabase-jwt-auth.guard';
 import {
@@ -44,6 +45,17 @@ export class FeedController {
   @UsePipes(new CustomValidationPipe())
   async validateFeed(@Query() query: ValidateFeedDto) {
     return this.feedService.getFeedItems(query.url);
+  }
+
+  /**
+   * Processa feed RSS completo e retorna conteúdo dos 5 itens mais recentes
+   * GET /feed/parse?url=https://example.com/feed&feedType=rss
+   * Requer autenticação JWT do Supabase
+   */
+  @Get('parse')
+  @UsePipes(new CustomValidationPipe())
+  async parseFeed(@Query() query: ParseFeedDto) {
+    return this.feedService.parseFeed(query.url);
   }
 
   /**

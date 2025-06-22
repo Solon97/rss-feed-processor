@@ -7,6 +7,7 @@ import {
   ContentExtractionResult,
   FeedItemsResponse,
   FeedValidationResult,
+  Feed,
 } from './interfaces/feed.interface';
 import { UserFeedWithFeed } from './application/services/user-feed-management.service';
 
@@ -122,5 +123,12 @@ export class FeedService {
    */
   async getFeedItems(url: string): Promise<FeedItemsResponse> {
     return this.feedSubscription.getFeedItems(url);
+  }
+
+  /**
+   * Parses an RSS feed and returns complete feed data with content
+   */
+  async parseFeed(url: string): Promise<Feed> {
+    return this.feedSubscription.parseFeed(url);
   }
 }
