@@ -43,8 +43,7 @@ export class FeedController {
   @Get('validate')
   @UsePipes(new CustomValidationPipe())
   async validateFeed(@Query() query: ValidateFeedDto) {
-    const result = await this.feedService.validateFeed(query.url);
-    return result;
+    return this.feedService.getFeedItems(query.url);
   }
 
   /**

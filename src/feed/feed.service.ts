@@ -5,6 +5,7 @@ import { FeedValidationApplicationService } from './application/services/feed-va
 import { UserFeedManagementApplicationService } from './application/services/user-feed-management.service';
 import {
   ContentExtractionResult,
+  FeedItemsResponse,
   FeedValidationResult,
 } from './interfaces/feed.interface';
 import { UserFeedWithFeed } from './application/services/user-feed-management.service';
@@ -114,5 +115,12 @@ export class FeedService {
    */
   async updateLastViewed(userId: string, feedId: string): Promise<void> {
     return this.userFeedManagement.updateLastViewed(userId, feedId);
+  }
+
+  /**
+   * Gets URLs of the latest 5 feed items
+   */
+  async getFeedItems(url: string): Promise<FeedItemsResponse> {
+    return this.feedSubscription.getFeedItems(url);
   }
 }

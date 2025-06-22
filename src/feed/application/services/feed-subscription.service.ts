@@ -156,7 +156,7 @@ export class FeedSubscriptionApplicationService {
   /**
    * Gets URLs of the latest 5 feed items
    */
-  private async getFeedItems(url: string): Promise<FeedItemsResponse> {
+  async getFeedItems(url: string): Promise<FeedItemsResponse> {
     const validation = await this.feedValidation.validateFeed(url);
 
     if (!validation.isValid || !validation.feedUrl) {
