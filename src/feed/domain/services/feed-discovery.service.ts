@@ -63,7 +63,7 @@ export class FeedDiscoveryService {
         '/blog/feed.xml',
         '/blog/rss.xml',
       ];
-      console.log(`Base URL: ${baseUrl.href}`);
+
       for (const path of commonPaths) {
         const testUrl = `${baseUrl.protocol}//${baseUrl.host}${path}`;
         if (
