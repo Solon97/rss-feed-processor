@@ -1,4 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as jwt from 'jsonwebtoken';
 
 export interface SupabaseJwtPayload {
@@ -17,9 +23,32 @@ export interface SupabaseJwtPayload {
   session_id?: string;
 }
 
+interface AuthResponse {
+  user: {
+    id: string;
+    email: string;
+    role?: string;
+  };
+  accessToken: string;
+  refreshToken?: string;
+}
+
 @Injectable()
 export class AuthService {
-  constructor() {}
+  private supabase: SupabaseClient;
+
+  constructor(private configService: ConfigService) {
+    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
+    const supabaseAnonKey = this.configService.get<string>('SUPABASE_ANON_KEY');
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error(
+        'SUPABASE_URL e SUPABASE_ANON_KEY devem estar configuradas',
+      );
+    }
+
+    this.supabase = createClient(supabaseUrl, supabaseAnonKey);
+  }
 
   /**
    * Valida um JWT token do Supabase
@@ -55,5 +84,93 @@ export class AuthService {
       role: payload.role,
       aud: payload.aud,
     };
+  }
+
+  /**
+   * Realiza login do usuário com email e senha
+   */
+  async login(email: string, password: string): Promise<AuthResponse> {
+    try {
+      const { data, error } = await this.supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw new UnauthorizedException(error.message);
+      }
+
+      if (!data.user || !data.session) {
+        throw new UnauthorizedException('Credenciais inválidas');
+      }
+
+      return {
+        user: {
+          id: data.user.id,
+          email: data.user.email!,
+          role: data.user.role,
+        },
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new BadRequestException('Erro ao realizar login');
+    }
+  }
+
+  /**
+   * Registra um novo usuário com email e senha
+   */
+  async register(email: string, password: string): Promise<AuthResponse> {
+    try {
+      const { data, error } = await this.supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw new BadRequestException(error.message);
+      }
+
+      if (!data.user) {
+        throw new BadRequestException('Erro ao criar usuário');
+      }
+
+      // Se não há sessão, significa que precisa confirmar email
+      if (!data.session) {
+        throw new BadRequestException(
+          'Usuário criado com sucesso. Verifique seu email para confirmar a conta.',
+        );
+      }
+
+      return {
+        user: {
+          id: data.user.id,
+          email: data.user.email!,
+          role: data.user.role,
+        },
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('Erro ao registrar usuário');
+    }
+  }
+
+  /**
+   * Realiza logout do usuário
+   */
+  async logout(): Promise<void> {
+    try {
+      await this.supabase.auth.signOut();
+    } catch (error) {
+      // Ignorar erros de logout, pois o token pode já ter expirado
+    }
   }
 }
