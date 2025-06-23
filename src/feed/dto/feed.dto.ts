@@ -104,3 +104,8 @@ export class ParseFeedDto {
   @IsNotEmpty({ message: 'URL é obrigatória' })
   url: string;
 }
+
+export class FeedItemParamsDto {
+  @IsUUID(4, { message: 'feed_item_id deve ser um UUID válido' })
+  feed_item_id: string;
+}

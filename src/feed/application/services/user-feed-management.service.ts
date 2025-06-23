@@ -334,4 +334,61 @@ export class UserFeedManagementApplicationService {
       );
     }
   }
+
+  /**
+   * Gets a specific feed item by ID (only if user has access to it)
+   */
+  async getFeedItemById(
+    userId: string,
+    feedItemId: string,
+  ): Promise<FeedItemWithFeed | null> {
+    try {
+      const feedItem = await this.prisma.feed_items.findFirst({
+        where: {
+          id: feedItemId,
+          feeds: {
+            user_feeds: {
+              some: {
+                user_id: userId,
+                is_active: true,
+              },
+            },
+          },
+        },
+        include: {
+          feeds: {
+            select: {
+              id: true,
+              name: true,
+              url: true,
+            },
+          },
+        },
+      });
+
+      if (!feedItem) {
+        return null;
+      }
+
+      return {
+        id: feedItem.id,
+        title: feedItem.title,
+        url: feedItem.url,
+        content: feedItem.content,
+        thumbnail: feedItem.thumbnail,
+        published_at: feedItem.published_at?.toISOString() || null,
+        created_at: feedItem.created_at.toISOString(),
+        feed: {
+          id: feedItem.feeds.id,
+          name: feedItem.feeds.name,
+          url: feedItem.feeds.url,
+        },
+      };
+    } catch (error) {
+      throw new FeedProcessingException(
+        'busca de item de feed por ID',
+        error.message,
+      );
+    }
+  }
 }

@@ -9,7 +9,10 @@ import {
   FeedValidationResult,
   Feed,
 } from './interfaces/feed.interface';
-import { UserFeedWithFeed } from './application/services/user-feed-management.service';
+import {
+  UserFeedWithFeed,
+  FeedItemWithFeed,
+} from './application/services/user-feed-management.service';
 
 /**
  * Main Feed Service - Orchestrates all feed-related operations
@@ -130,5 +133,15 @@ export class FeedService {
    */
   async parseFeed(url: string): Promise<Feed> {
     return this.feedSubscription.parseFeed(url);
+  }
+
+  /**
+   * Gets a specific feed item by ID
+   */
+  async getFeedItemById(
+    userId: string,
+    feedItemId: string,
+  ): Promise<FeedItemWithFeed | null> {
+    return this.userFeedManagement.getFeedItemById(userId, feedItemId);
   }
 }

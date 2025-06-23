@@ -1,34 +1,36 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
+  NotFoundException,
+  Param,
   Post,
   Put,
-  Delete,
-  Body,
   Query,
-  Param,
-  UsePipes,
   UseGuards,
   UseInterceptors,
+  UsePipes,
 } from '@nestjs/common';
-import { FeedService } from './feed.service';
-import {
-  ValidateFeedDto,
-  ExtractContentDto,
-  CreateUserFeedDto,
-  UpdateUserFeedStatusDto,
-  UpdateNotificationSettingsDto,
-  UserFeedParamsDto,
-  GetFeedItemsQueryDto,
-  ParseFeedDto,
-} from './dto/feed.dto';
-import { SupabaseJwtAuthGuard } from '../auth/guards/supabase-jwt-auth.guard';
 import {
   CurrentUser,
   UserInfo,
 } from '../auth/decorators/current-user.decorator';
+import { SupabaseJwtAuthGuard } from '../auth/guards/supabase-jwt-auth.guard';
 import { ErrorLoggingInterceptor } from '../common/interceptors/error-logging.interceptor';
 import { CustomValidationPipe } from '../common/pipes/custom-validation.pipe';
+import {
+  CreateUserFeedDto,
+  ExtractContentDto,
+  FeedItemParamsDto,
+  GetFeedItemsQueryDto,
+  ParseFeedDto,
+  UpdateNotificationSettingsDto,
+  UpdateUserFeedStatusDto,
+  UserFeedParamsDto,
+  ValidateFeedDto,
+} from './dto/feed.dto';
+import { FeedService } from './feed.service';
 
 @Controller('feed')
 @UseGuards(SupabaseJwtAuthGuard)
@@ -212,5 +214,30 @@ export class FeedController {
     );
 
     return { message: 'Timestamp de visualização atualizado com sucesso' };
+  }
+
+  /**
+   * Busca um feed item específico por ID
+   * GET /feed/feed-item/:feed_item_id
+   * Requer autenticação JWT do Supabase
+   */
+  @Get('feed-item/:feed_item_id')
+  @UsePipes(new CustomValidationPipe())
+  async getFeedItemById(
+    @Param() params: FeedItemParamsDto,
+    @CurrentUser() user: UserInfo,
+  ) {
+    const feedItem = await this.feedService.getFeedItemById(
+      user.id,
+      params.feed_item_id,
+    );
+
+    if (!feedItem) {
+      throw new NotFoundException(
+        'Feed item não encontrado nos feeds do usuário',
+      );
+    }
+
+    return feedItem;
   }
 }
