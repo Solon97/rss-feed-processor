@@ -30,7 +30,6 @@ interface AuthResponse {
     role?: string;
   };
   accessToken: string;
-  refreshToken?: string;
 }
 
 @Injectable()
@@ -111,66 +110,12 @@ export class AuthService {
           role: data.user.role,
         },
         accessToken: data.session.access_token,
-        refreshToken: data.session.refresh_token,
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
       throw new BadRequestException('Erro ao realizar login');
-    }
-  }
-
-  /**
-   * Registra um novo usuário com email e senha
-   */
-  async register(email: string, password: string): Promise<AuthResponse> {
-    try {
-      const { data, error } = await this.supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) {
-        throw new BadRequestException(error.message);
-      }
-
-      if (!data.user) {
-        throw new BadRequestException('Erro ao criar usuário');
-      }
-
-      // Se não há sessão, significa que precisa confirmar email
-      if (!data.session) {
-        throw new BadRequestException(
-          'Usuário criado com sucesso. Verifique seu email para confirmar a conta.',
-        );
-      }
-
-      return {
-        user: {
-          id: data.user.id,
-          email: data.user.email!,
-          role: data.user.role,
-        },
-        accessToken: data.session.access_token,
-        refreshToken: data.session.refresh_token,
-      };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new BadRequestException('Erro ao registrar usuário');
-    }
-  }
-
-  /**
-   * Realiza logout do usuário
-   */
-  async logout(): Promise<void> {
-    try {
-      await this.supabase.auth.signOut();
-    } catch (error) {
-      // Ignorar erros de logout, pois o token pode já ter expirado
     }
   }
 }

@@ -9,15 +9,6 @@ export class LoginDto {
   password: string;
 }
 
-export class RegisterDto {
-  @IsEmail()
-  email: string;
-
-  @IsString()
-  @MinLength(6)
-  password: string;
-}
-
 export class AuthResponseDto {
   user: {
     id: string;
@@ -25,5 +16,4 @@ export class AuthResponseDto {
     role?: string;
   };
   accessToken: string;
-  refreshToken?: string;
 }

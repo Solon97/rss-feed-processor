@@ -32,7 +32,7 @@ export class SupabaseJwtStrategy extends PassportStrategy(
       // Extrair informações do usuário do payload
       const userInfo = this.authService.extractUserInfo(payload);
 
-      // Verificar se o token não expirou
+      // Verificar se o token não expirou (verificação adicional)
       const now = Math.floor(Date.now() / 1000);
       if (payload.exp < now) {
         throw new UnauthorizedException({
