@@ -39,6 +39,16 @@ export class ContentExtractorUtil {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   `;
 
+  private static readonly FIGCAPTION_STYLES = `
+    text-align: center;
+    font-style: italic;
+    color: #666;
+    font-size: 0.9em;
+    margin-top: 8px;
+    line-height: 1.4;
+    max-width: 100%;
+  `;
+
   /**
    * Processes HTML content to replace YouTube thumbnails with iframes
    * and apply responsive styling to all media elements
@@ -54,6 +64,9 @@ export class ContentExtractorUtil {
 
     // Apply responsive styling to images and iframes
     this.applyResponsiveMediaStylesInDOM(document);
+
+    // Apply styling to figcaptions
+    this.applyFigcaptionStylesInDOM(document);
 
     return document.body.innerHTML;
   }
@@ -121,6 +134,16 @@ export class ContentExtractorUtil {
         );
         iframe.setAttribute('frameborder', '0');
       }
+    });
+  }
+
+  /**
+   * Applies styling to figcaption elements for better readability
+   */
+  private static applyFigcaptionStylesInDOM(document: Document): void {
+    const figcaptions = document.querySelectorAll('figcaption');
+    figcaptions.forEach((figcaption) => {
+      figcaption.style.cssText = this.FIGCAPTION_STYLES;
     });
   }
 
