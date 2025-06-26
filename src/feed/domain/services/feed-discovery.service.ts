@@ -100,6 +100,63 @@ export class FeedDiscoveryService {
     }
   }
 
+  /**
+   * Converte URL do Medium para feed RSS
+   * Exemplo: https://medium.com/engage -> https://medium.com/feed/engage
+   */
+  getMediumFeedUrl(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname;
+
+      // Se já é um feed, retorna a URL original
+      if (path.includes('/feed/')) {
+        return url;
+      }
+
+      // Para perfis de usuário: medium.com/@username -> medium.com/feed/@username
+      if (path.startsWith('/@')) {
+        return `${urlObj.protocol}//${urlObj.host}/feed${path}`;
+      }
+
+      // Para publicações: medium.com/publication -> medium.com/feed/publication
+      if (path !== '/' && path !== '') {
+        return `${urlObj.protocol}//${urlObj.host}/feed${path}`;
+      }
+
+      // Para domínio raiz: medium.com -> medium.com/feed
+      return `${urlObj.protocol}//${urlObj.host}/feed`;
+    } catch (error) {
+      throw new Error(`Erro ao converter URL do Medium: ${error.message}`);
+    }
+  }
+
+  /**
+   * Converte URL do Dev.to para feed RSS
+   * Exemplo: https://dev.to/ben -> https://dev.to/feed/ben
+   */
+  getDevToFeedUrl(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname;
+
+      // Se já é um feed, retorna a URL original
+      if (path.includes('/feed/')) {
+        return url;
+      }
+
+      // Para perfis de usuário: dev.to/username -> dev.to/feed/username
+      if (path !== '/' && path !== '') {
+        return `${urlObj.protocol}//${urlObj.host}/feed${path}`;
+      }
+
+      // Para domínio raiz: dev.to -> dev.to/feed
+      return `${urlObj.protocol}//${urlObj.host}/feed`;
+    } catch (error) {
+      throw new Error(`Erro ao converter URL do Dev.to: ${error.message}`);
+    }
+  }
+
   private resolveUrl(href: string, baseUrl: string): string {
     if (href.startsWith('http')) {
       return href;

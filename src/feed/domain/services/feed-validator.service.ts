@@ -55,4 +55,30 @@ export class FeedValidatorService {
       return false;
     }
   }
+
+  /**
+   * Valida se é uma publicação ou perfil do Medium
+   */
+  isMediumPublication(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.toLowerCase();
+      return hostname === 'medium.com' || hostname.endsWith('.medium.com');
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Valida se é um perfil do Dev.to
+   */
+  isDevToProfile(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.toLowerCase();
+      return hostname === 'dev.to';
+    } catch (error) {
+      return false;
+    }
+  }
 }

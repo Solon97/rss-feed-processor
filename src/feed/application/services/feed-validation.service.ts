@@ -42,6 +42,24 @@ export class FeedValidationApplicationService {
         return { isValid: true, type: 'youtube', feedUrl: rssUrl };
       }
 
+      // If Medium publication/profile, convert to feed URL
+      if (this.feedValidator.isMediumPublication(url)) {
+        const feedUrl = this.feedDiscovery.getMediumFeedUrl(url);
+        if (feedUrl && (await this.feedValidator.isValidRssFeed(feedUrl))) {
+          return { isValid: true, type: 'rss', feedUrl };
+        }
+        throw new FeedNotFoundException(url);
+      }
+
+      // If Dev.to profile, convert to feed URL
+      if (this.feedValidator.isDevToProfile(url)) {
+        const feedUrl = this.feedDiscovery.getDevToFeedUrl(url);
+        if (feedUrl && (await this.feedValidator.isValidRssFeed(feedUrl))) {
+          return { isValid: true, type: 'rss', feedUrl };
+        }
+        throw new FeedNotFoundException(url);
+      }
+
       // Check if it's a valid RSS feed directly
       if (await this.feedValidator.isValidRssFeed(url)) {
         return { isValid: true, type: 'rss', feedUrl: url };
