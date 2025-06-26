@@ -242,19 +242,53 @@ export class UserFeedManagementApplicationService {
     offset: number = 0,
     sort: 'created_at' | 'published_at' = 'published_at',
     order: 'asc' | 'desc' = 'desc',
+    title?: string,
+    feedId?: string,
+    feedType?: 'rss' | 'youtube',
   ): Promise<FeedItemWithFeed[]> {
     try {
-      const feedItems = await this.prisma.feed_items.findMany({
-        where: {
-          feeds: {
-            user_feeds: {
-              some: {
-                user_id: userId,
-                is_active: true,
-              },
+      // Build where clause with filters
+      const whereClause: any = {
+        feeds: {
+          user_feeds: {
+            some: {
+              user_id: userId,
+              is_active: true,
             },
           },
         },
+      };
+
+      // Add title filter if provided
+      if (title) {
+        whereClause.title = {
+          contains: title,
+          mode: 'insensitive',
+        };
+      }
+
+      // Add feed_id filter if provided
+      if (feedId) {
+        whereClause.feed_id = feedId;
+      }
+
+      // Add feed_type filter if provided
+      if (feedType) {
+        if (feedType === 'youtube') {
+          whereClause.feeds.url = {
+            contains: 'youtube.com',
+          };
+        } else if (feedType === 'rss') {
+          whereClause.feeds.url = {
+            not: {
+              contains: 'youtube.com',
+            },
+          };
+        }
+      }
+
+      const feedItems = await this.prisma.feed_items.findMany({
+        where: whereClause,
         include: {
           feeds: {
             select: {

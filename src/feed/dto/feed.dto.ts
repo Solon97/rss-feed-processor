@@ -89,6 +89,21 @@ export class GetFeedItemsQueryDto {
     message: 'order deve ser asc ou desc',
   })
   order?: 'asc' | 'desc' = 'desc';
+
+  @IsOptional()
+  @IsString({ message: 'title deve ser uma string' })
+  title?: string;
+
+  @IsOptional()
+  @IsUUID(4, { message: 'feed_id deve ser um UUID válido' })
+  feed_id?: string;
+
+  @IsOptional()
+  @IsString({ message: 'feed_type deve ser uma string' })
+  @IsEnum(['rss', 'youtube'], {
+    message: 'feed_type deve ser rss ou youtube',
+  })
+  feed_type?: 'rss' | 'youtube';
 }
 
 export class UpdateLastViewedDto {

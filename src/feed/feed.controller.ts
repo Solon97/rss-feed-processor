@@ -121,7 +121,7 @@ export class FeedController {
 
   /**
    * Busca itens agregados dos feeds ativos do usuário
-   * GET /feed/user-feed-items?limit=20&offset=0&sort=published_at&order=desc
+   * GET /feed/user-feed-items?limit=20&offset=0&sort=published_at&order=desc&title=exemplo&feed_id=uuid&feed_type=rss
    * Requer autenticação JWT do Supabase
    */
   @Get('user-feed-items')
@@ -136,6 +136,9 @@ export class FeedController {
       query.offset,
       query.sort,
       query.order,
+      query.title,
+      query.feed_id,
+      query.feed_type,
     );
     return items;
   }

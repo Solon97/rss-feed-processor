@@ -104,6 +104,9 @@ export class FeedService {
     offset: number = 0,
     sort: 'created_at' | 'published_at' = 'published_at',
     order: 'asc' | 'desc' = 'desc',
+    title?: string,
+    feedId?: string,
+    feedType?: 'rss' | 'youtube',
   ) {
     return this.userFeedManagement.getUserFeedItems(
       userId,
@@ -111,6 +114,9 @@ export class FeedService {
       offset,
       sort,
       order,
+      title,
+      feedId,
+      feedType,
     );
   }
 
