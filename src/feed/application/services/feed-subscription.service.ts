@@ -1,60 +1,36 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { FeedValidationApplicationService } from './feed-validation.service';
 import {
   UserAlreadySubscribedException,
   FeedNotFoundException,
   FeedProcessingException,
-  InvalidUrlException,
-  FeedTimeoutException,
-  FeedNetworkException,
-  FeedParsingException,
 } from '../../../common/exceptions/feed.exceptions';
-import { FeedItemsResponse, Feed } from '@/feed/interfaces/feed.interface';
-import { RssParserService } from '@/feed/domain/services/rss-parser.service';
 
 /**
- * Application Service for Feed Subscription Management
- * Handles user feed subscriptions and feed creation with content extraction
+ * Service for Feed Subscription Management
+ * Handles user feed subscriptions and database operations
+ * This service focuses on CRUD operations and delegates feed processing to the FeedProcessingModule
  */
 @Injectable()
-export class FeedSubscriptionApplicationService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly feedValidation: FeedValidationApplicationService,
-    private readonly rssParser: RssParserService,
-  ) {}
+export class FeedSubscriptionService {
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Creates a user feed subscription
-   * If feed doesn't exist, validates and creates it with the latest 5 items
-   * If feed exists, just creates the user subscription
+   * Assumes the feed has already been validated and created by the processing module
    */
-  async createUserFeed(userId: string, feedUrl: string) {
+  async createUserFeedSubscription(
+    userId: string,
+    feedId: string,
+    feedUrl: string,
+  ) {
     try {
-      // Validate the feed URL first
-      const validation = await this.feedValidation.validateFeed(feedUrl);
-
-      if (!validation.isValid || !validation.feedUrl) {
-        throw new FeedNotFoundException(feedUrl);
-      }
-
-      // Check if feed already exists in database
-      let feed = await this.prisma.feeds.findUnique({
-        where: { url: validation.feedUrl },
-      });
-
-      // If feed doesn't exist, create it
-      if (!feed) {
-        feed = await this.createFeedWithItems(validation.feedUrl);
-      }
-
       // Check if user is already subscribed to this feed
       const existingUserFeed = await this.prisma.user_feeds.findUnique({
         where: {
           user_id_feed_id: {
             user_id: userId,
-            feed_id: feed.id,
+            feed_id: feedId,
           },
         },
       });
@@ -67,7 +43,7 @@ export class FeedSubscriptionApplicationService {
       const userFeed = await this.prisma.user_feeds.create({
         data: {
           user_id: userId,
-          feed_id: feed.id,
+          feed_id: feedId,
           is_active: true,
           access_permissions: 'read',
           notification_enabled: true,
@@ -75,18 +51,11 @@ export class FeedSubscriptionApplicationService {
         },
       });
 
-      return {
-        feed,
-        userFeed,
-        message: 'Feed criado e usuário inscrito com sucesso',
-      };
+      return userFeed;
     } catch (error) {
       if (
-        error instanceof FeedNotFoundException ||
         error instanceof UserAlreadySubscribedException ||
-        error instanceof InvalidUrlException ||
-        error instanceof FeedTimeoutException ||
-        error instanceof FeedNetworkException
+        error instanceof FeedNotFoundException
       ) {
         throw error;
       }
@@ -95,25 +64,32 @@ export class FeedSubscriptionApplicationService {
   }
 
   /**
-   * Creates a new feed and extracts the latest 5 items
+   * Creates a new feed record in the database
    */
-  private async createFeedWithItems(feedUrl: string) {
+  async createFeedRecord(feedData: {
+    name: string;
+    url: string;
+    items: Array<{
+      title: string;
+      link: string;
+      content?: string;
+      thumbnail?: string;
+      pubDate?: string;
+    }>;
+  }) {
     try {
-      // Parse feed and get complete data with content already extracted
-      const feedData = await this.parseFeed(feedUrl);
-
       // Create the feed record
       const feed = await this.prisma.feeds.create({
         data: {
-          name: feedData.title || 'Feed sem título',
-          url: feedUrl,
+          name: feedData.name || 'Feed sem título',
+          url: feedData.url,
           is_active: true,
           status: 'active',
           last_fetched_at: new Date(),
         },
       });
 
-      // Save the feed items (content is already extracted by parseFeed)
+      // Save the feed items
       const feedItems = [];
       for (const item of feedData.items) {
         try {
@@ -137,60 +113,16 @@ export class FeedSubscriptionApplicationService {
 
       return feed;
     } catch (error) {
-      if (error.name?.includes('TimeoutError')) {
-        throw new FeedTimeoutException(feedUrl);
-      }
       throw new FeedProcessingException('criação do feed', error.message);
     }
   }
 
   /**
-   * Gets URLs of the latest 5 feed items
+   * Gets a feed by URL
    */
-  async getFeedItems(url: string): Promise<FeedItemsResponse> {
-    const validation = await this.feedValidation.validateFeed(url);
-
-    if (!validation.isValid || !validation.feedUrl) {
-      throw new FeedNotFoundException(url);
-    }
-
-    try {
-      const { title, urls } = await this.rssParser.getFeedItemUrls(
-        validation.feedUrl,
-      );
-
-      return {
-        type: validation.type,
-        title,
-        urls,
-      };
-    } catch (error) {
-      if (error.name?.includes('TimeoutError')) {
-        throw new FeedTimeoutException(validation.feedUrl);
-      }
-      throw new FeedParsingException(validation.feedUrl, error.message);
-    }
-  }
-
-  /**
-   * Parses an RSS feed and returns complete feed data with content
-   */
-  async parseFeed(url: string): Promise<Feed> {
-    const validation = await this.feedValidation.validateFeed(url);
-    if (!validation.isValid || !validation.feedUrl) {
-      throw new FeedNotFoundException(url);
-    }
-
-    try {
-      return await this.rssParser.parseRssFeed(
-        validation.feedUrl,
-        validation.type,
-      );
-    } catch (error) {
-      if (error.name?.includes('TimeoutError')) {
-        throw new FeedTimeoutException(validation.feedUrl);
-      }
-      throw new FeedParsingException(validation.feedUrl, error.message);
-    }
+  async getFeedByUrl(url: string) {
+    return this.prisma.feeds.findUnique({
+      where: { url },
+    });
   }
 }

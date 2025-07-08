@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ContentExtractionResult } from '@/feed/interfaces/feed.interface';
-import { ContentExtractorUtil } from '@/feed/utils/content-extractor.util';
-import { ThumbnailExtractorUtil } from '@/feed/utils/thumbnail-extractor.util';
-import { YouTubeExtractorUtil } from '@/feed/utils/youtube-extractor.util';
+import { ContentExtractorUtil } from '../utils/content-extractor.util';
+import { ThumbnailExtractorUtil } from '../utils/thumbnail-extractor.util';
+import { YouTubeExtractorUtil } from '../utils/youtube-extractor.util';
 import {
   InvalidUrlException,
   ContentNotFoundException,
@@ -11,11 +11,11 @@ import {
 } from '@/common/exceptions/feed.exceptions';
 
 /**
- * Application Service for Content Extraction
- * Orchestrates content extraction from URLs with different strategies
+ * Service for Content Extraction
+ * Handles content extraction from URLs with different strategies
  */
 @Injectable()
-export class ContentExtractionApplicationService {
+export class ContentExtractionService {
   /**
    * Extracts content from a specific URL
    */

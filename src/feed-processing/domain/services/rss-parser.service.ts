@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import * as Parser from 'rss-parser';
 import { Feed, FeedItem } from '@/feed/interfaces/feed.interface';
-import { ContentExtractorUtil } from '@/feed/utils/content-extractor.util';
-import { ThumbnailExtractorUtil } from '@/feed/utils/thumbnail-extractor.util';
+import { ContentExtractorUtil } from '../../utils/content-extractor.util';
+import { ThumbnailExtractorUtil } from '../../utils/thumbnail-extractor.util';
 import {
   FeedParsingException,
   FeedTimeoutException,
@@ -95,5 +95,14 @@ export class RssParserService {
       }
       throw new FeedParsingException(rssUrl, error.message);
     }
+  }
+
+  /**
+   * Simplified method to parse a feed URL and determine type automatically
+   */
+  async parseFeed(rssUrl: string): Promise<Feed> {
+    // Determine feed type based on URL
+    const feedType = rssUrl.includes('youtube.com') ? 'youtube' : 'rss';
+    return this.parseRssFeed(rssUrl, feedType);
   }
 }

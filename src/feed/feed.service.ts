@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ContentExtractionApplicationService } from './application/services/content-extraction.service';
-import { FeedSubscriptionApplicationService } from './application/services/feed-subscription.service';
-import { FeedValidationApplicationService } from './application/services/feed-validation.service';
-import { UserFeedManagementApplicationService } from './application/services/user-feed-management.service';
+import { ContentExtractionService } from '../feed-processing/services/content-extraction.service';
+import { FeedValidationService } from '../feed-processing/services/feed-validation.service';
+import { FeedParsingService } from '../feed-processing/services/feed-parsing.service';
+import { FeedSubscriptionService } from './application/services/feed-subscription.service';
+import { UserFeedManagementService } from './application/services/user-feed-management.service';
 import {
   ContentExtractionResult,
   FeedItemsResponse,
@@ -16,16 +17,17 @@ import {
 
 /**
  * Main Feed Service - Orchestrates all feed-related operations
- * Acts as a facade for all feed application services
+ * Acts as a facade for both CRUD operations and feed processing
  * This is the main entry point for feed operations from controllers
  */
 @Injectable()
 export class FeedService {
   constructor(
-    private readonly feedValidation: FeedValidationApplicationService,
-    private readonly contentExtraction: ContentExtractionApplicationService,
-    private readonly feedSubscription: FeedSubscriptionApplicationService,
-    private readonly userFeedManagement: UserFeedManagementApplicationService,
+    private readonly feedValidation: FeedValidationService,
+    private readonly contentExtraction: ContentExtractionService,
+    private readonly feedParsing: FeedParsingService,
+    private readonly feedSubscription: FeedSubscriptionService,
+    private readonly userFeedManagement: UserFeedManagementService,
   ) {}
 
   /**
@@ -46,7 +48,38 @@ export class FeedService {
    * Creates a user feed subscription
    */
   async createUserFeed(userId: string, feedUrl: string) {
-    return this.feedSubscription.createUserFeed(userId, feedUrl);
+    // First, validate the feed using the processing module
+    const validation = await this.feedValidation.validateFeed(feedUrl);
+
+    if (!validation.isValid || !validation.feedUrl) {
+      throw new Error('Invalid feed URL');
+    }
+
+    // Check if feed already exists in database
+    let feed = await this.feedSubscription.getFeedByUrl(validation.feedUrl);
+
+    // If feed doesn't exist, create it using the processing module
+    if (!feed) {
+      const feedData = await this.feedParsing.parseFeed(validation.feedUrl);
+      feed = await this.feedSubscription.createFeedRecord({
+        name: feedData.title,
+        url: validation.feedUrl,
+        items: feedData.items.slice(0, 5), // Only save the latest 5 items
+      });
+    }
+
+    // Create the user subscription
+    const userFeed = await this.feedSubscription.createUserFeedSubscription(
+      userId,
+      feed.id,
+      feedUrl,
+    );
+
+    return {
+      feed,
+      userFeed,
+      message: 'Feed criado e usuário inscrito com sucesso',
+    };
   }
 
   /**
@@ -131,14 +164,14 @@ export class FeedService {
    * Gets URLs of the latest 5 feed items
    */
   async getFeedItems(url: string): Promise<FeedItemsResponse> {
-    return this.feedSubscription.getFeedItems(url);
+    return this.feedParsing.getFeedItems(url);
   }
 
   /**
    * Parses an RSS feed and returns complete feed data with content
    */
   async parseFeed(url: string): Promise<Feed> {
-    return this.feedSubscription.parseFeed(url);
+    return this.feedParsing.parseFeed(url);
   }
 
   /**

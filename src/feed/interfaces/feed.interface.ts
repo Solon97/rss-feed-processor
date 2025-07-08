@@ -18,9 +18,13 @@ export interface FeedValidationResult {
 }
 
 export interface FeedItemsResponse {
-  type: 'rss' | 'youtube';
-  title: string;
-  urls: string[];
+  feedUrl: string;
+  feedType: 'rss' | 'youtube';
+  items: Array<{
+    title: string;
+    link: string;
+    pubDate?: string;
+  }>;
 }
 
 export interface ContentExtractionResult {

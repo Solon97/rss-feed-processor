@@ -39,11 +39,11 @@ export interface FeedItemWithFeed {
 }
 
 /**
- * Application Service for User Feed Management
+ * Service for User Feed Management
  * Handles user feed subscriptions, status updates, and notification settings
  */
 @Injectable()
-export class UserFeedManagementApplicationService {
+export class UserFeedManagementService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**

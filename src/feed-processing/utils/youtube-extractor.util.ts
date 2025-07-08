@@ -1,5 +1,5 @@
 import { fetch } from 'undici';
-import { ContentExtractionResult } from '../interfaces/feed.interface';
+import { ContentExtractionResult } from '@/feed/interfaces/feed.interface';
 import { ThumbnailExtractorUtil } from './thumbnail-extractor.util';
 
 /**

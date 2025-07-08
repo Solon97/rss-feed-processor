@@ -1,21 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { FeedValidatorService } from '../../domain/services/feed-validator.service';
-import { FeedDiscoveryService } from '../../domain/services/feed-discovery.service';
-import { RssParserService } from '../../domain/services/rss-parser.service';
-import { FeedValidationResult } from '../../interfaces/feed.interface';
+import { FeedValidatorService } from '../domain/services/feed-validator.service';
+import { FeedDiscoveryService } from '../domain/services/feed-discovery.service';
+import { RssParserService } from '../domain/services/rss-parser.service';
+import { FeedValidationResult } from '@/feed/interfaces/feed.interface';
 import {
   InvalidUrlException,
   FeedNotFoundException,
   FeedTimeoutException,
   FeedNetworkException,
-} from '../../../common/exceptions/feed.exceptions';
+} from '@/common/exceptions/feed.exceptions';
 
 /**
- * Application Service for Feed Validation
- * Orchestrates feed validation and item retrieval operations
+ * Service for Feed Validation
+ * Handles feed validation and item retrieval operations
  */
 @Injectable()
-export class FeedValidationApplicationService {
+export class FeedValidationService {
   constructor(
     private readonly feedValidator: FeedValidatorService,
     private readonly feedDiscovery: FeedDiscoveryService,

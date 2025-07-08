@@ -4,6 +4,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { FeedModule } from './feed/feed.module';
+import { FeedProcessingModule } from './feed-processing/feed-processing.module';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
@@ -15,6 +16,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
       envFilePath: '.env',
     }),
     PrismaModule,
+    FeedProcessingModule,
     FeedModule,
     AuthModule,
   ],
