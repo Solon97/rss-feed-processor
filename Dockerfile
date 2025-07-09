@@ -43,7 +43,7 @@ FROM base AS build
 ENV NODE_ENV=production
 
 # Instalar apenas dependências de produção
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile
 
 # Copiar código fonte
 COPY . .
