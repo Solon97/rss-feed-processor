@@ -185,7 +185,14 @@ export class ContentExtractorUtil {
       }
 
       const html = await res.text();
-      const dom = new JSDOM(html, { url });
+
+      // Create JSDOM with conservative settings to avoid CSS parsing errors
+      const dom = new JSDOM(html, {
+        url,
+        pretendToBeVisual: false,
+        resources: undefined, // Disable external resource loading including CSS
+        runScripts: 'outside-only',
+      });
       const document = dom.window.document;
       const article = new Readability(document).parse();
 

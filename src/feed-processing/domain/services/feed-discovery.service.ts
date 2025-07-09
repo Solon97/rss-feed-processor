@@ -45,11 +45,17 @@ export class FeedDiscoveryService {
         feedUrl = this.resolveUrl(feedUrl, url);
 
         // Valida se é um feed válido
-        if (await this.feedValidator.isValidRssFeed(feedUrl)) {
+        if (
+          await this.feedValidator.isValidRssFeed(feedUrl).catch(() => false)
+        ) {
           return feedUrl;
         }
       }
+    } catch (error) {
+      console.error(`Erro ao buscar feed RSS: ${error.message}`);
+    }
 
+    try {
       // Se não encontrou, tenta URLs comuns de feed
       const baseUrl = new URL(url);
       const commonPaths = [
@@ -72,11 +78,12 @@ export class FeedDiscoveryService {
           return testUrl;
         }
       }
-
-      return null;
     } catch (error) {
-      return null;
+      console.error(
+        `Erro ao buscar feed RSS por urls comuns: ${error.message}`,
+      );
     }
+    return null;
   }
 
   /**

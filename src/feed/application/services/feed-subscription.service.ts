@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { FeedQueueService } from '../../../queue/services/feed-queue.service';
 import {
   UserAlreadySubscribedException,
   FeedNotFoundException,
@@ -13,7 +14,10 @@ import {
  */
 @Injectable()
 export class FeedSubscriptionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly feedQueueService: FeedQueueService,
+  ) {}
 
   /**
    * Creates a user feed subscription
@@ -64,7 +68,8 @@ export class FeedSubscriptionService {
   }
 
   /**
-   * Creates a new feed record in the database
+   * Creates a feed record in the database
+   * This method is called after the feed has been validated and processed by the processing module
    */
   async createFeedRecord(feedData: {
     name: string;
@@ -72,9 +77,9 @@ export class FeedSubscriptionService {
     items: Array<{
       title: string;
       link: string;
+      pubDate?: string;
       content?: string;
       thumbnail?: string;
-      pubDate?: string;
     }>;
   }) {
     try {
@@ -110,6 +115,9 @@ export class FeedSubscriptionService {
           // Continue with next item instead of failing completely
         }
       }
+
+      // Add the newly created feed to the priority queue for immediate processing
+      await this.feedQueueService.addNewFeedToPriorityQueue(feed.id, feed.url);
 
       return feed;
     } catch (error) {
