@@ -20,23 +20,21 @@ import { QueueController } from './controllers/queue.controller';
     forwardRef(() => FeedProcessingModule),
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        redis: {
-          host: configService.get('REDIS_HOST', 'localhost'),
-          port: configService.get('REDIS_PORT', 6379),
-          password: configService.get('REDIS_PASSWORD'),
-          db: configService.get('REDIS_DB', 0),
-        },
-        defaultJobOptions: {
-          removeOnComplete: 10,
-          removeOnFail: 5,
-          attempts: 3,
-          backoff: {
-            type: 'exponential',
-            delay: 2000,
+      useFactory: async (configService: ConfigService) => {
+        const redis = configService.get('REDIS_URL');
+        return {
+          redis,
+          defaultJobOptions: {
+            removeOnComplete: 10,
+            removeOnFail: 5,
+            attempts: 3,
+            backoff: {
+              type: 'exponential',
+              delay: 2000,
+            },
           },
-        },
-      }),
+        };
+      },
       inject: [ConfigService],
     }),
     BullModule.registerQueue(

@@ -127,10 +127,13 @@ Remove todos os jobs falhados das filas.
 
 ```env
 # Redis (obrigatório)
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_DB=0
+REDIS_URL=redis://localhost:6379/0
+
+# Configurações separadas (deprecadas - use REDIS_URL)
+# REDIS_HOST=localhost
+# REDIS_PORT=6379
+# REDIS_PASSWORD=
+# REDIS_DB=0
 ```
 
 ### Configuração de Jobs

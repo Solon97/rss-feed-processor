@@ -12,7 +12,7 @@ export class FeedSchedulerService {
    * Schedule all feeds processing every 30 minutes
    * Runs at minute 0 and 30 of every hour
    */
-  @Cron('0,30 * * * *')
+  @Cron('*/5 * * * *')
   async scheduleFeedsProcessing() {
     this.logger.log('Starting scheduled feeds processing...');
 

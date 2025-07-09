@@ -125,9 +125,7 @@ SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # Redis (automático no Docker)
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_DB=0
+REDIS_URL=redis://redis:6379/0
 ```
 
 ### Variáveis Opcionais
