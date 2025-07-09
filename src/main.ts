@@ -42,6 +42,9 @@ async function bootstrap() {
   app.get(PrismaService);
 
   const port = process.env.PORT || 3001;
-  await app.listen(port);
+  const host = '0.0.0.0';
+  await app.listen(port, host);
+
+  console.log(`Application is running on: http://${host}:${port}`);
 }
 bootstrap();
