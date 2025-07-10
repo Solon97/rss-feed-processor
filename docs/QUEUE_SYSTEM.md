@@ -56,7 +56,7 @@ Este sistema implementa um processamento distribuído de feeds RSS usando BullMQ
 
 ### Processors
 
-#### `FeedProcessingProcessor`
+#### `FeedDefaultProcessor`
 - Processa feeds da fila regular
 - Atualiza timestamp de última busca
 - Extrai conteúdo dos 10 itens mais recentes

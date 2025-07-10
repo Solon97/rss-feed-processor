@@ -1,20 +1,16 @@
-import { Processor, Process } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FeedParsingService } from '../../feed-processing/services/feed-parsing.service';
 import { ContentExtractionService } from '../../feed-processing/services/content-extraction.service';
 import {
   FeedProcessingJobData,
   FeedItemProcessingResult,
-  QueueNames,
-  JobTypes,
+  JobData,
 } from '../interfaces/job.interface';
 
-@Processor(QueueNames.FEED_PROCESSING)
 @Injectable()
-export class FeedProcessingProcessor {
-  private readonly logger = new Logger(FeedProcessingProcessor.name);
+export class FeedDefaultProcessor {
+  private readonly logger = new Logger(FeedDefaultProcessor.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -22,9 +18,8 @@ export class FeedProcessingProcessor {
     private readonly contentExtraction: ContentExtractionService,
   ) {}
 
-  @Process(JobTypes.PROCESS_FEED)
   async processFeed(
-    job: Job<FeedProcessingJobData>,
+    job: JobData<FeedProcessingJobData>,
   ): Promise<FeedItemProcessingResult> {
     const { feedId, feedUrl, userCount } = job.data;
     const startTime = Date.now();

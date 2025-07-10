@@ -1,25 +1,79 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { ConfigService } from '@nestjs/config';
+import { Client } from '@upstash/qstash';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   FeedProcessingJobData,
   JobPriority,
-  QueueNames,
   JobTypes,
 } from '../interfaces/job.interface';
 
 @Injectable()
 export class FeedQueueService {
   private readonly logger = new Logger(FeedQueueService.name);
+  private readonly qstashClient: Client;
 
   constructor(
-    @InjectQueue(QueueNames.FEED_PROCESSING)
-    private readonly feedProcessingQueue: Queue<FeedProcessingJobData>,
-    @InjectQueue(QueueNames.FEED_PRIORITY)
-    private readonly feedPriorityQueue: Queue<FeedProcessingJobData>,
+    private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) {
+    this.qstashClient = new Client({
+      token: this.configService.get<string>('QSTASH_TOKEN'),
+    });
+  }
+
+  /**
+   * Sends a job to QStash with appropriate delay based on priority
+   */
+  private async sendToQStash(
+    jobType: JobTypes,
+    jobData: FeedProcessingJobData,
+    delay?: number,
+    retries = 3,
+  ): Promise<void> {
+    const webhookUrl =
+      this.configService.get<string>('WEBHOOK_BASE_URL') +
+      '/queue/webhook/process';
+
+    const payload = {
+      jobType,
+      jobData,
+      jobId: `${jobType}-${jobData.feedId}-${Date.now()}`,
+    };
+
+    const options: any = {
+      retries,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+
+    if (delay) {
+      options.delay = delay;
+    }
+
+    await this.qstashClient.publishJSON({
+      url: webhookUrl,
+      body: payload,
+      ...options,
+    });
+  }
+
+  /**
+   * Calculates delay based on priority (lower priority = higher delay)
+   */
+  private calculateDelayForPriority(priority: number): number {
+    switch (priority) {
+      case JobPriority.HIGH:
+        return 0; // Immediate processing
+      case JobPriority.MEDIUM:
+        return 30000; // 30 seconds delay
+      case JobPriority.LOW:
+        return 60000; // 1 minute delay
+      default:
+        return 60000;
+    }
+  }
 
   /**
    * Calculates feed priority based on active user count
@@ -50,6 +104,7 @@ export class FeedQueueService {
     try {
       const userCount = await this.getActiveUserCount(feedId);
       const priority = this.calculateFeedPriority(userCount);
+      const delay = this.calculateDelayForPriority(priority);
 
       const jobData: FeedProcessingJobData = {
         feedId,
@@ -58,19 +113,10 @@ export class FeedQueueService {
         userCount,
       };
 
-      await this.feedProcessingQueue.add(JobTypes.PROCESS_FEED, jobData, {
-        priority,
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
-        removeOnComplete: 10,
-        removeOnFail: 5,
-      });
+      await this.sendToQStash(JobTypes.PROCESS_FEED, jobData, delay, 3);
 
       this.logger.log(
-        `Feed ${feedId} added to processing queue with priority ${priority} (${userCount} users)`,
+        `Feed ${feedId} added to processing queue with priority ${priority} (${userCount} users), delay: ${delay}ms`,
       );
     } catch (error) {
       this.logger.error(
@@ -97,16 +143,8 @@ export class FeedQueueService {
         userCount,
       };
 
-      await this.feedPriorityQueue.add(JobTypes.PROCESS_NEW_FEED, jobData, {
-        priority: JobPriority.HIGH,
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
-        },
-        removeOnComplete: 5,
-        removeOnFail: 3,
-      });
+      // No delay for new feeds - immediate processing
+      await this.sendToQStash(JobTypes.PROCESS_NEW_FEED, jobData, 0, 3);
 
       this.logger.log(
         `New feed ${feedId} added to priority queue for immediate processing`,
@@ -163,40 +201,5 @@ export class FeedQueueService {
       );
       throw error;
     }
-  }
-
-  /**
-   * Gets queue statistics
-   */
-  async getQueueStats() {
-    const [processingStats, priorityStats] = await Promise.all([
-      {
-        waiting: await this.feedProcessingQueue.getWaiting(),
-        active: await this.feedProcessingQueue.getActive(),
-        completed: await this.feedProcessingQueue.getCompleted(),
-        failed: await this.feedProcessingQueue.getFailed(),
-      },
-      {
-        waiting: await this.feedPriorityQueue.getWaiting(),
-        active: await this.feedPriorityQueue.getActive(),
-        completed: await this.feedPriorityQueue.getCompleted(),
-        failed: await this.feedPriorityQueue.getFailed(),
-      },
-    ]);
-
-    return {
-      processing: {
-        waiting: processingStats.waiting.length,
-        active: processingStats.active.length,
-        completed: processingStats.completed.length,
-        failed: processingStats.failed.length,
-      },
-      priority: {
-        waiting: priorityStats.waiting.length,
-        active: priorityStats.active.length,
-        completed: priorityStats.completed.length,
-        failed: priorityStats.failed.length,
-      },
-    };
   }
 }

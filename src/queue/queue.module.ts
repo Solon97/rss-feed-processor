@@ -1,16 +1,13 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { BullModule } from '@nestjs/bull';
+import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { PrismaModule } from '../prisma/prisma.module';
 import { FeedProcessingModule } from '../feed-processing/feed-processing.module';
-import { QueueNames } from './interfaces/job.interface';
-import { FeedQueueService } from './services/feed-queue.service';
-import { FeedSchedulerService } from './services/feed-scheduler.service';
-import { QueueHealthService } from './services/queue-health.service';
-import { FeedProcessingProcessor } from './processors/feed-processing.processor';
-import { FeedPriorityProcessor } from './processors/feed-priority.processor';
+import { PrismaModule } from '../prisma/prisma.module';
 import { QueueController } from './controllers/queue.controller';
+import { WebhookController } from './controllers/webhook.controller';
+import { FeedPriorityProcessor } from './processors/feed-priority.processor';
+import { FeedDefaultProcessor } from './processors/feed-default.processor';
+import { FeedQueueService } from './services/feed-queue.service';
 
 @Module({
   imports: [
@@ -18,50 +15,9 @@ import { QueueController } from './controllers/queue.controller';
     PrismaModule,
     ScheduleModule.forRoot(),
     forwardRef(() => FeedProcessingModule),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => {
-        const redis = configService.get('REDIS_URL');
-        return {
-          redis,
-          defaultJobOptions: {
-            removeOnComplete: 10,
-            removeOnFail: 5,
-            attempts: 3,
-            backoff: {
-              type: 'exponential',
-              delay: 2000,
-            },
-          },
-        };
-      },
-      inject: [ConfigService],
-    }),
-    BullModule.registerQueue(
-      {
-        name: QueueNames.FEED_PROCESSING,
-        defaultJobOptions: {
-          removeOnComplete: 10,
-          removeOnFail: 5,
-        },
-      },
-      {
-        name: QueueNames.FEED_PRIORITY,
-        defaultJobOptions: {
-          removeOnComplete: 5,
-          removeOnFail: 3,
-        },
-      },
-    ),
   ],
-  controllers: [QueueController],
-  providers: [
-    FeedQueueService,
-    FeedSchedulerService,
-    QueueHealthService,
-    FeedProcessingProcessor,
-    FeedPriorityProcessor,
-  ],
+  controllers: [QueueController, WebhookController],
+  providers: [FeedQueueService, FeedDefaultProcessor, FeedPriorityProcessor],
   exports: [FeedQueueService],
 })
 export class QueueModule {}

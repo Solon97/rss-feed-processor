@@ -8,6 +8,7 @@ import { FeedProcessingModule } from './feed-processing/feed-processing.module';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { QueueModule } from './queue/queue.module';
+import { ConfigurationModule } from './config/configuration.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 @Module({
@@ -16,6 +17,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ConfigurationModule,
     PrismaModule,
     QueueModule,
     FeedProcessingModule,

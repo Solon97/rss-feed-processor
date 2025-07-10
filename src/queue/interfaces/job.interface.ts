@@ -18,12 +18,12 @@ export enum JobPriority {
   LOW = 1,
 }
 
-export enum QueueNames {
-  FEED_PROCESSING = 'feed-processing',
-  FEED_PRIORITY = 'feed-priority',
-}
-
 export enum JobTypes {
   PROCESS_FEED = 'process-feed',
   PROCESS_NEW_FEED = 'process-new-feed',
+}
+
+export interface JobData<T> {
+  id: string;
+  data: T;
 }

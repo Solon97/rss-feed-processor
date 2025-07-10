@@ -32,11 +32,4 @@ describe('Queue System Integration Test', () => {
   it('should be defined', () => {
     expect(feedQueueService).toBeDefined();
   });
-
-  it('should calculate feed priority correctly', async () => {
-    // Este teste requer dados no banco para funcionar
-    const stats = await feedQueueService.getQueueStats();
-    expect(stats).toHaveProperty('processing');
-    expect(stats).toHaveProperty('priority');
-  });
 });

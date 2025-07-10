@@ -1,26 +1,19 @@
-import { Processor, Process } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from 'bull';
 import {
   FeedProcessingJobData,
   FeedItemProcessingResult,
-  QueueNames,
-  JobTypes,
+  JobData,
 } from '../interfaces/job.interface';
-import { FeedProcessingProcessor } from './feed-processing.processor';
+import { FeedDefaultProcessor } from './feed-default.processor';
 
-@Processor(QueueNames.FEED_PRIORITY)
 @Injectable()
 export class FeedPriorityProcessor {
   private readonly logger = new Logger(FeedPriorityProcessor.name);
 
-  constructor(
-    private readonly feedProcessingProcessor: FeedProcessingProcessor,
-  ) {}
+  constructor(private readonly feedDefaultProcessor: FeedDefaultProcessor) {}
 
-  @Process(JobTypes.PROCESS_NEW_FEED)
   async processNewFeed(
-    job: Job<FeedProcessingJobData>,
+    job: JobData<FeedProcessingJobData>,
   ): Promise<FeedItemProcessingResult> {
     const { feedId } = job.data;
 
@@ -30,7 +23,7 @@ export class FeedPriorityProcessor {
 
     try {
       // Use the same processing logic as regular feeds but with higher priority
-      const result = await this.feedProcessingProcessor.processFeed(job);
+      const result = await this.feedDefaultProcessor.processFeed(job);
 
       this.logger.log(
         `Completed priority processing for new feed ${feedId} - ${result.newItems} new items`,

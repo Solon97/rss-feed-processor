@@ -9,6 +9,28 @@ Um serviço NestJS para processar feeds RSS com autenticação JWT do Supabase.
 - **Autenticação JWT**: Proteção de rotas usando tokens JWT do Supabase
 - **Descoberta Automática de Feeds**: Detecta feeds RSS/Atom automaticamente
 - **Extração de Thumbnails**: Extrai imagens de destaque dos artigos
+- **Sistema de Filas QStash**: Processamento assíncrono e confiável de feeds
+
+## 📊 Sistema de Filas com QStash
+
+Esta aplicação utiliza [QStash](https://upstash.com/qstash) para processamento assíncrono de feeds RSS:
+
+### Características:
+- **Serverless**: Não requer Redis ou infraestrutura adicional
+- **Prioridades inteligentes**: Feeds com mais usuários são processados primeiro
+- **Retry automático**: QStash gerencia tentativas de reprocessamento
+- **Webhooks HTTP**: Processamento via endpoints REST
+
+### Configuração QStash:
+```bash
+# Variáveis necessárias no .env
+QSTASH_TOKEN=your_qstash_token_here
+QSTASH_CURRENT_SIGNING_KEY=your_current_signing_key_here
+QSTASH_NEXT_SIGNING_KEY=your_next_signing_key_here
+WEBHOOK_BASE_URL=https://your-app-domain.com
+```
+
+Para mais detalhes, consulte [QSTASH_MIGRATION.md](./QSTASH_MIGRATION.md).
 
 ## 🔒 Autenticação
 

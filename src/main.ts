@@ -2,9 +2,23 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { PrismaService } from './prisma/prisma.service';
+import { EnvironmentValidationService } from './config/environment-validation.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Validar variáveis de ambiente na inicialização
+  const envValidationService = app.get(EnvironmentValidationService);
+  const isEnvironmentValid = envValidationService.validateEnvironment();
+
+  if (!isEnvironmentValid) {
+    console.error('\n❌ Falha na validação das variáveis de ambiente!');
+    console.error(
+      '🔧 Configure as variáveis faltantes no arquivo .env e tente novamente.',
+    );
+    process.exit(1);
+  }
+
   const origin = process.env.NODE_ENV !== 'production' || [
     /^https:\/\/.*\.local-credentialless\.webcontainer-api\.io$/, // Para Bolt
     /^https:\/\/.*\.vercel\.app$/, // Para Vercel
