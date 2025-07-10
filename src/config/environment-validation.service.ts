@@ -33,6 +33,7 @@ export class EnvironmentValidationService {
         'QSTASH_CURRENT_SIGNING_KEY',
         'QSTASH_NEXT_SIGNING_KEY',
         'WEBHOOK_BASE_URL',
+        'QSTASH_SCHEDULE_ID',
       ],
       enabled: true,
     },

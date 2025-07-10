@@ -1,8 +1,6 @@
 export interface FeedProcessingJobData {
   feedId: string;
   feedUrl: string;
-  priority: number;
-  userCount: number;
 }
 
 export interface FeedItemProcessingResult {
@@ -23,7 +21,7 @@ export enum JobTypes {
   PROCESS_NEW_FEED = 'process-new-feed',
 }
 
-export interface JobData<T> {
+export interface Message<T> {
   id: string;
   data: T;
 }

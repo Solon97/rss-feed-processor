@@ -1,13 +1,17 @@
 import { Controller, Post, UseGuards } from '@nestjs/common';
-import { AppAuthGuard } from '../../auth/guards/auth.guard';
+import { QStashSchedulerGuard } from '../../auth/guards/qstash-scheduler.guard';
 import { FeedQueueService } from '../services/feed-queue.service';
 
 @Controller('queue')
-@UseGuards(AppAuthGuard)
 export class QueueController {
   constructor(private readonly feedQueueService: FeedQueueService) {}
 
+  /**
+   * Endpoint para agendar processamento de todos os feeds
+   * Autenticado via header Upstash-Schedule-Id do QStash scheduler
+   */
   @Post('schedule-all')
+  @UseGuards(QStashSchedulerGuard)
   async scheduleAllFeeds() {
     await this.feedQueueService.scheduleAllFeedsProcessing();
     return { message: 'All feeds scheduled for processing' };

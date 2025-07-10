@@ -11,13 +11,13 @@ import { Receiver } from '@upstash/qstash';
 import {
   FeedItemProcessingResult,
   FeedProcessingJobData,
-  JobData,
+  Message,
   JobTypes,
 } from '../interfaces/job.interface';
 import { FeedPriorityProcessor } from '../processors/feed-priority.processor';
 import { FeedDefaultProcessor } from '../processors/feed-default.processor';
 
-@Controller('queue/webhook')
+@Controller('webhook')
 export class WebhookController {
   private readonly logger = new Logger(WebhookController.name);
   private readonly receiver: Receiver;
@@ -58,12 +58,14 @@ export class WebhookController {
         jobId: string;
       };
 
-      this.logger.log(`Processing QStash job ${jobId} of type ${jobType}`);
+      this.logger.log(
+        `Processing feed ${jobData?.feedUrl} of job type ${jobType}`,
+      );
 
       let result: FeedItemProcessingResult;
 
       // Create a mock job object that matches Bull's Job interface
-      const job: JobData<FeedProcessingJobData> = {
+      const job: Message<FeedProcessingJobData> = {
         id: jobId,
         data: jobData,
       };
@@ -79,7 +81,9 @@ export class WebhookController {
           throw new BadRequestException(`Unknown job type: ${jobType}`);
       }
 
-      this.logger.log(`Successfully processed QStash job ${jobId}`);
+      this.logger.log(
+        `Successfully processed QStash job ${jobId} for feed ${jobData.feedUrl}`,
+      );
       return { success: true, result };
     } catch (error) {
       this.logger.error(

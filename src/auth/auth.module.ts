@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AppAuthGuard } from './guards/auth.guard';
+import { QStashSchedulerGuard } from './guards/qstash-scheduler.guard';
 import { SupabaseJwtStrategy } from './strategies/supabase-jwt.strategy';
 
 @Module({
@@ -16,7 +17,12 @@ import { SupabaseJwtStrategy } from './strategies/supabase-jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [SupabaseJwtStrategy, AuthService, AppAuthGuard],
-  exports: [AuthService, AppAuthGuard],
+  providers: [
+    SupabaseJwtStrategy,
+    AuthService,
+    AppAuthGuard,
+    QStashSchedulerGuard,
+  ],
+  exports: [AuthService, AppAuthGuard, QStashSchedulerGuard],
 })
 export class AuthModule {}

@@ -2,16 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client } from '@upstash/qstash';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  FeedProcessingJobData,
-  JobPriority,
-  JobTypes,
-} from '../interfaces/job.interface';
+import { FeedProcessingJobData, JobTypes } from '../interfaces/job.interface';
 
 @Injectable()
 export class FeedQueueService {
   private readonly logger = new Logger(FeedQueueService.name);
   private readonly qstashClient: Client;
+  private readonly priorityQueueName = 'feed-processing-priority';
+  private readonly defaultQueueName = 'feed-processing-default';
 
   constructor(
     private readonly configService: ConfigService,
@@ -23,104 +21,52 @@ export class FeedQueueService {
   }
 
   /**
-   * Sends a job to QStash with appropriate delay based on priority
+   * Sends a job to a specific QStash queue
    */
-  private async sendToQStash(
+  private async sendToQueue(
+    queueName: string,
     jobType: JobTypes,
     jobData: FeedProcessingJobData,
-    delay?: number,
     retries = 3,
   ): Promise<void> {
-    const webhookUrl =
-      this.configService.get<string>('WEBHOOK_BASE_URL') +
-      '/queue/webhook/process';
+    const queue = this.qstashClient.queue({
+      queueName: queueName,
+    });
 
-    const payload = {
+    const url =
+      this.configService.get<string>('WEBHOOK_BASE_URL') + '/webhook/process';
+
+    const body = {
       jobType,
       jobData,
       jobId: `${jobType}-${jobData.feedId}-${Date.now()}`,
     };
 
-    const options: any = {
+    await queue.enqueueJSON({
+      url,
+      body,
       retries,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
-
-    if (delay) {
-      options.delay = delay;
-    }
-
-    await this.qstashClient.publishJSON({
-      url: webhookUrl,
-      body: payload,
-      ...options,
     });
   }
 
   /**
-   * Calculates delay based on priority (lower priority = higher delay)
-   */
-  private calculateDelayForPriority(priority: number): number {
-    switch (priority) {
-      case JobPriority.HIGH:
-        return 0; // Immediate processing
-      case JobPriority.MEDIUM:
-        return 30000; // 30 seconds delay
-      case JobPriority.LOW:
-        return 60000; // 1 minute delay
-      default:
-        return 60000;
-    }
-  }
-
-  /**
-   * Calculates feed priority based on active user count
-   */
-  private calculateFeedPriority(userCount: number): number {
-    if (userCount >= 100) return JobPriority.HIGH;
-    if (userCount >= 10) return JobPriority.MEDIUM;
-    return JobPriority.LOW;
-  }
-
-  /**
-   * Gets active user count for a feed
-   */
-  private async getActiveUserCount(feedId: string): Promise<number> {
-    const count = await this.prisma.user_feeds.count({
-      where: {
-        feed_id: feedId,
-        is_active: true,
-      },
-    });
-    return count;
-  }
-
-  /**
-   * Adds a feed to the regular processing queue
+   * Adds a feed to the appropriate processing queue based on priority
    */
   async addFeedToQueue(feedId: string, feedUrl: string): Promise<void> {
     try {
-      const userCount = await this.getActiveUserCount(feedId);
-      const priority = this.calculateFeedPriority(userCount);
-      const delay = this.calculateDelayForPriority(priority);
+      const queueName = this.defaultQueueName;
 
       const jobData: FeedProcessingJobData = {
         feedId,
         feedUrl,
-        priority,
-        userCount,
       };
 
-      await this.sendToQStash(JobTypes.PROCESS_FEED, jobData, delay, 3);
+      await this.sendToQueue(queueName, JobTypes.PROCESS_FEED, jobData, 3);
 
-      this.logger.log(
-        `Feed ${feedId} added to processing queue with priority ${priority} (${userCount} users), delay: ${delay}ms`,
-      );
+      this.logger.log(`Feed ${feedUrl} added to ${queueName} queue`);
     } catch (error) {
       this.logger.error(
-        `Failed to add feed ${feedId} to queue: ${error.message}`,
+        `Failed to add feed ${feedUrl} to queue: ${error.message}`,
       );
       throw error;
     }
@@ -134,17 +80,18 @@ export class FeedQueueService {
     feedUrl: string,
   ): Promise<void> {
     try {
-      const userCount = await this.getActiveUserCount(feedId);
-
       const jobData: FeedProcessingJobData = {
         feedId,
         feedUrl,
-        priority: JobPriority.HIGH,
-        userCount,
       };
 
-      // No delay for new feeds - immediate processing
-      await this.sendToQStash(JobTypes.PROCESS_NEW_FEED, jobData, 0, 3);
+      // Send to priority queue for immediate processing
+      await this.sendToQueue(
+        this.priorityQueueName,
+        JobTypes.PROCESS_NEW_FEED,
+        jobData,
+        3,
+      );
 
       this.logger.log(
         `New feed ${feedId} added to priority queue for immediate processing`,

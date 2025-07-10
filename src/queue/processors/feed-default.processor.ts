@@ -5,7 +5,7 @@ import { ContentExtractionService } from '../../feed-processing/services/content
 import {
   FeedProcessingJobData,
   FeedItemProcessingResult,
-  JobData,
+  Message,
 } from '../interfaces/job.interface';
 
 @Injectable()
@@ -19,14 +19,12 @@ export class FeedDefaultProcessor {
   ) {}
 
   async processFeed(
-    job: JobData<FeedProcessingJobData>,
+    job: Message<FeedProcessingJobData>,
   ): Promise<FeedItemProcessingResult> {
-    const { feedId, feedUrl, userCount } = job.data;
+    const { feedId, feedUrl } = job.data;
     const startTime = Date.now();
 
-    this.logger.log(
-      `Processing feed ${feedUrl} (${userCount} users) - Job ${job.id}`,
-    );
+    this.logger.log(`Processing feed ${feedUrl} - Job ${job.id}`);
 
     try {
       // Update feed last_fetched_at timestamp

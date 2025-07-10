@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   FeedProcessingJobData,
   FeedItemProcessingResult,
-  JobData,
+  Message,
 } from '../interfaces/job.interface';
 import { FeedDefaultProcessor } from './feed-default.processor';
 
@@ -13,7 +13,7 @@ export class FeedPriorityProcessor {
   constructor(private readonly feedDefaultProcessor: FeedDefaultProcessor) {}
 
   async processNewFeed(
-    job: JobData<FeedProcessingJobData>,
+    job: Message<FeedProcessingJobData>,
   ): Promise<FeedItemProcessingResult> {
     const { feedId } = job.data;
 
