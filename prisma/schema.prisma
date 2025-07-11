@@ -61,3 +61,20 @@ model user_feeds {
     @@index([last_viewed_at], map: "idx_user_feeds_last_viewed_at")
     @@index([user_id], map: "idx_user_feeds_user_id")
 }
+
+model user_subscriptions {
+    id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    user_id                String    @db.Uuid
+    stripe_subscription_id String    @unique
+    stripe_customer_id     String
+    status                 String    @default("active")
+    current_period_start   DateTime  @db.Timestamptz(6)
+    current_period_end     DateTime  @db.Timestamptz(6)
+    created_at             DateTime? @default(now()) @db.Timestamptz(6)
+    updated_at             DateTime? @default(now()) @db.Timestamptz(6)
+
+    @@index([user_id], map: "idx_user_subscriptions_user_id")
+    @@index([status], map: "idx_user_subscriptions_status")
+    @@index([stripe_subscription_id], map: "idx_user_subscriptions_stripe_id")
+    @@index([current_period_end], map: "idx_user_subscriptions_period_end")
+}

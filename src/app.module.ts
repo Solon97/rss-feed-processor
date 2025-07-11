@@ -10,6 +10,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { QueueModule } from './queue/queue.module';
 import { ConfigurationModule } from './config/configuration.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { SubscriptionModule } from './subscription/subscription.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     FeedProcessingModule,
     FeedModule,
     AuthModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [

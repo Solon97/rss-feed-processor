@@ -41,6 +41,21 @@ CREATE TABLE "user_feeds" (
     CONSTRAINT "user_feeds_pkey" PRIMARY KEY ("user_id","feed_id")
 );
 
+-- CreateTable
+CREATE TABLE "user_subscriptions" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "user_id" UUID NOT NULL,
+    "stripe_subscription_id" TEXT NOT NULL,
+    "stripe_customer_id" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "current_period_start" TIMESTAMPTZ(6) NOT NULL,
+    "current_period_end" TIMESTAMPTZ(6) NOT NULL,
+    "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "user_subscriptions_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE INDEX "idx_feed_items_created_at" ON "feed_items"("created_at");
 
@@ -82,6 +97,21 @@ CREATE INDEX "idx_user_feeds_last_viewed_at" ON "user_feeds"("last_viewed_at");
 
 -- CreateIndex
 CREATE INDEX "idx_user_feeds_user_id" ON "user_feeds"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_subscriptions_stripe_subscription_id_key" ON "user_subscriptions"("stripe_subscription_id");
+
+-- CreateIndex
+CREATE INDEX "idx_user_subscriptions_user_id" ON "user_subscriptions"("user_id");
+
+-- CreateIndex
+CREATE INDEX "idx_user_subscriptions_status" ON "user_subscriptions"("status");
+
+-- CreateIndex
+CREATE INDEX "idx_user_subscriptions_stripe_id" ON "user_subscriptions"("stripe_subscription_id");
+
+-- CreateIndex
+CREATE INDEX "idx_user_subscriptions_period_end" ON "user_subscriptions"("current_period_end");
 
 -- AddForeignKey
 ALTER TABLE "feed_items" ADD CONSTRAINT "feed_items_feed_id_fkey" FOREIGN KEY ("feed_id") REFERENCES "feeds"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
