@@ -14,6 +14,7 @@ model feed_items {
     url          String
     content      String?   @db.Text
     thumbnail    String?
+    duration     String? // Duration in ISO 8601 format (e.g., "PT10M30S" for 10 minutes 30 seconds)
     published_at DateTime  @db.Timestamptz(6)
     created_at   DateTime? @default(now()) @db.Timestamptz(6)
     feeds        feeds     @relation(fields: [feed_id], references: [id], onDelete: Cascade, onUpdate: NoAction)

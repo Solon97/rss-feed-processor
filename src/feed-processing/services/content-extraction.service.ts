@@ -3,6 +3,7 @@ import { ContentExtractionResult } from '@/feed/interfaces/feed.interface';
 import { ContentExtractorUtil } from '../utils/content-extractor.util';
 import { ThumbnailExtractorUtil } from '../utils/thumbnail-extractor.util';
 import { YouTubeExtractorUtil } from '../utils/youtube-extractor.util';
+import { YouTubeDataApiService } from '../domain/services/youtube-data-api.service';
 import {
   InvalidUrlException,
   ContentNotFoundException,
@@ -16,6 +17,8 @@ import {
  */
 @Injectable()
 export class ContentExtractionService {
+  constructor(private readonly youtubeDataApiService: YouTubeDataApiService) {}
+
   /**
    * Extracts content from a specific URL
    */
@@ -30,7 +33,11 @@ export class ContentExtractionService {
       // Check if it's a YouTube video
       const youtubeVideoId = ThumbnailExtractorUtil.extractYouTubeVideoId(url);
       if (youtubeVideoId) {
-        return await YouTubeExtractorUtil.extractVideoInfo(url, youtubeVideoId);
+        return await YouTubeExtractorUtil.extractVideoInfo(
+          url,
+          youtubeVideoId,
+          this.youtubeDataApiService,
+        );
       }
 
       // For other content, extract using Readability

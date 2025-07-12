@@ -70,6 +70,7 @@ export class FeedDefaultProcessor {
           // Extract content for the item
           let content = item.content || '';
           let thumbnail = item.thumbnail || '';
+          let duration: string | undefined;
 
           if (item.link) {
             try {
@@ -77,6 +78,7 @@ export class FeedDefaultProcessor {
                 await this.contentExtraction.extractContent(item.link);
               content = extractedContent.content || content;
               thumbnail = extractedContent.thumbnail || thumbnail;
+              duration = extractedContent.duration;
             } catch (contentError) {
               this.logger.warn(
                 `Content extraction failed for ${item.link}: ${contentError.message}`,
@@ -92,6 +94,7 @@ export class FeedDefaultProcessor {
               url: item.link || '',
               content,
               thumbnail,
+              duration,
               published_at: item.pubDate ? new Date(item.pubDate) : new Date(),
             },
           });

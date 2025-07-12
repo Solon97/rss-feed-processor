@@ -29,6 +29,7 @@ export interface FeedItemWithFeed {
   url: string;
   content: string | null;
   thumbnail: string | null;
+  duration: string | null;
   published_at: string | null;
   created_at: string;
   feed: {
@@ -311,6 +312,7 @@ export class UserFeedManagementService {
         url: item.url,
         content: item.content,
         thumbnail: item.thumbnail,
+        duration: item.duration,
         published_at: item.published_at?.toISOString() || null,
         created_at: item.created_at.toISOString(),
         feed: {
@@ -410,6 +412,7 @@ export class UserFeedManagementService {
         url: feedItem.url,
         content: feedItem.content,
         thumbnail: feedItem.thumbnail,
+        duration: feedItem.duration,
         published_at: feedItem.published_at?.toISOString() || null,
         created_at: feedItem.created_at.toISOString(),
         feed: {

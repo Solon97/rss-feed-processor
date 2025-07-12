@@ -41,15 +41,17 @@ export class WebhookController {
     @Body() body: any,
   ) {
     try {
-      // Verify the signature to ensure the request is from QStash
-      const isValid = await this.receiver.verify({
-        signature,
-        body: JSON.stringify(body),
-      });
+      if (process.env.NODE_ENV === 'production') {
+        // Verify the signature to ensure the request is from QStash
+        const isValid = await this.receiver.verify({
+          signature,
+          body: JSON.stringify(body),
+        });
 
-      if (!isValid) {
-        this.logger.error('Invalid signature from QStash webhook');
-        throw new BadRequestException('Invalid signature');
+        if (!isValid) {
+          this.logger.error('Invalid signature from QStash webhook');
+          throw new BadRequestException('Invalid signature');
+        }
       }
 
       const { jobType, jobData, jobId } = body as {

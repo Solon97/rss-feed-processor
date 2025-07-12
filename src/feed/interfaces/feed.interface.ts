@@ -4,6 +4,7 @@ export interface FeedItem {
   pubDate?: string;
   content?: string;
   thumbnail?: string;
+  duration?: string; // Duration in ISO 8601 format (e.g., "PT10M30S")
 }
 
 export interface Feed {
@@ -33,4 +34,5 @@ export interface ContentExtractionResult {
   pubDate?: string;
   content: string;
   thumbnail?: string;
+  duration?: string; // Duration in ISO 8601 format (e.g., "PT10M30S")
 }

@@ -1,6 +1,7 @@
 import { fetch } from 'undici';
 import { ContentExtractionResult } from '@/feed/interfaces/feed.interface';
 import { ThumbnailExtractorUtil } from './thumbnail-extractor.util';
+import { YouTubeDataApiService } from '../domain/services/youtube-data-api.service';
 
 /**
  * Utility class for YouTube-specific operations
@@ -8,17 +9,36 @@ import { ThumbnailExtractorUtil } from './thumbnail-extractor.util';
  */
 export class YouTubeExtractorUtil {
   /**
-   * Extracts YouTube video information
+   * Extracts YouTube video information including duration
    */
   static async extractVideoInfo(
     url: string,
     videoId: string,
+    youtubeApiService?: YouTubeDataApiService,
   ): Promise<ContentExtractionResult> {
-    // First attempt: use YouTube oembed API
-    let title = await this.getVideoTitleFromOEmbed(videoId);
+    // First attempt: use YouTube Data API if available
+    let title: string | undefined;
+    let duration: string | undefined;
 
+    if (youtubeApiService?.isAvailable()) {
+      try {
+        const videoInfo = await youtubeApiService.getVideoInfo(videoId);
+        if (videoInfo) {
+          title = videoInfo.title;
+          duration = videoInfo.duration;
+        }
+      } catch (error) {
+        // Continue with fallback methods
+      }
+    }
+
+    // Fallback: use YouTube oembed API for title if not obtained from Data API
+    if (!title) {
+      title = await this.getVideoTitleFromOEmbed(videoId);
+    }
+
+    // Final fallback: page scraping for title
     if (!title || title === 'Vídeo do YouTube') {
-      // Second attempt: page scraping
       title = await this.getVideoTitleFromPage(url);
     }
 
@@ -30,6 +50,7 @@ export class YouTubeExtractorUtil {
       link: url,
       content: '',
       thumbnail,
+      duration,
     };
   }
 
