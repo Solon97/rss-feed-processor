@@ -37,6 +37,12 @@ export class EnvironmentValidationService {
       ],
       enabled: true,
     },
+    {
+      name: 'Youtube',
+      description: 'Serviço de integração com o YouTube',
+      requiredVars: ['YOUTUBE_API_KEY'],
+      enabled: true,
+    },
   ];
 
   constructor(private readonly configService: ConfigService) {}
