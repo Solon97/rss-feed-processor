@@ -4,6 +4,7 @@ import {
   FeedNotFoundException,
   FeedProcessingException,
 } from '../../../common/exceptions/feed.exceptions';
+import { GetFeedItemsQueryDto } from '@/feed/dto/feed.dto';
 
 export interface UserFeedWithFeed {
   feed_id: string;
@@ -239,13 +240,16 @@ export class UserFeedManagementService {
    */
   async getUserFeedItems(
     userId: string,
-    limit: number = 20,
-    offset: number = 0,
-    sort: 'created_at' | 'published_at' = 'published_at',
-    order: 'asc' | 'desc' = 'desc',
-    title?: string,
-    feedId?: string,
-    feedType?: 'rss' | 'youtube',
+    {
+      limit = 20,
+      offset = 0,
+      sort,
+      order,
+      title,
+      feedId,
+      feedType,
+      topicId,
+    }: GetFeedItemsQueryDto,
   ): Promise<FeedItemWithFeed[]> {
     try {
       // Build where clause with filters
@@ -286,6 +290,11 @@ export class UserFeedManagementService {
             },
           };
         }
+      }
+
+      // Add topic filter if provided
+      if (topicId) {
+        whereClause.feeds.user_feeds.some.topic_id = topicId;
       }
 
       const feedItems = await this.prisma.feed_items.findMany({

@@ -69,7 +69,7 @@ export class FeedController {
     @Body() body: CreateUserFeedDto,
     @CurrentUser() user: UserInfo,
   ) {
-    const result = await this.feedService.createUserFeed(user.id, body.url);
+    const result = await this.feedService.createUserFeed(user.id, body);
     return result;
   }
 
@@ -130,16 +130,7 @@ export class FeedController {
     @Query() query: GetFeedItemsQueryDto,
     @CurrentUser() user: UserInfo,
   ) {
-    const items = await this.feedService.getUserFeedItems(
-      user.id,
-      query.limit,
-      query.offset,
-      query.sort,
-      query.order,
-      query.title,
-      query.feed_id,
-      query.feed_type,
-    );
+    const items = await this.feedService.getUserFeedItems(user.id, query);
     return items;
   }
 

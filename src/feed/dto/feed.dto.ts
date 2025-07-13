@@ -37,6 +37,14 @@ export class CreateUserFeedDto {
   )
   @IsNotEmpty({ message: 'URL é obrigatória' })
   url: string;
+
+  @IsUUID(4, { message: 'topic_id deve ser um UUID válido' })
+  @IsNotEmpty({ message: 'topic_id é obrigatório' })
+  topic_id: string;
+
+  get topicId(): string {
+    return this.topic_id;
+  }
 }
 
 export class UpdateUserFeedStatusDto {
@@ -104,11 +112,22 @@ export class GetFeedItemsQueryDto {
     message: 'feed_type deve ser rss ou youtube',
   })
   feed_type?: 'rss' | 'youtube';
-}
 
-export class UpdateLastViewedDto {
-  // O timestamp será automaticamente definido como o momento atual no servidor
-  // Este DTO existe apenas para validação de parâmetros da rota
+  @IsOptional()
+  @IsUUID(4, { message: 'topic_id deve ser um UUID válido' })
+  topic_id?: string;
+
+  get feedId(): string | undefined {
+    return this.feed_id;
+  }
+
+  get feedType(): 'rss' | 'youtube' | undefined {
+    return this.feed_type;
+  }
+
+  get topicId(): string | undefined {
+    return this.topic_id;
+  }
 }
 
 export class ParseFeedDto {

@@ -4,6 +4,7 @@ import { FeedValidationService } from '../feed-processing/services/feed-validati
 import { FeedParsingService } from '../feed-processing/services/feed-parsing.service';
 import { FeedSubscriptionService } from './application/services/feed-subscription.service';
 import { UserFeedManagementService } from './application/services/user-feed-management.service';
+import { TopicManagementService } from './application/services/topic-management.service';
 import {
   ContentExtractionResult,
   FeedItemsResponse,
@@ -14,6 +15,7 @@ import {
   UserFeedWithFeed,
   FeedItemWithFeed,
 } from './application/services/user-feed-management.service';
+import { CreateUserFeedDto, GetFeedItemsQueryDto } from './dto/feed.dto';
 
 /**
  * Main Feed Service - Orchestrates all feed-related operations
@@ -28,6 +30,7 @@ export class FeedService {
     private readonly feedParsing: FeedParsingService,
     private readonly feedSubscription: FeedSubscriptionService,
     private readonly userFeedManagement: UserFeedManagementService,
+    private readonly topicManagement: TopicManagementService,
   ) {}
 
   /**
@@ -47,9 +50,19 @@ export class FeedService {
   /**
    * Creates a user feed subscription
    */
-  async createUserFeed(userId: string, feedUrl: string) {
-    // First, validate the feed using the processing module
-    const validation = await this.feedValidation.validateFeed(feedUrl);
+  async createUserFeed(userId: string, userFeedData: CreateUserFeedDto) {
+    // First, validate that the topic exists and belongs to the user
+    const isValidTopic = await this.topicManagement.validateTopicOwnership(
+      userId,
+      userFeedData.topicId,
+    );
+
+    if (!isValidTopic) {
+      throw new Error('Tópico não encontrado ou não pertence ao usuário');
+    }
+
+    // Validate the feed using the processing module
+    const validation = await this.feedValidation.validateFeed(userFeedData.url);
 
     if (!validation.isValid || !validation.feedUrl) {
       throw new Error('Invalid feed URL');
@@ -72,7 +85,8 @@ export class FeedService {
     const userFeed = await this.feedSubscription.createUserFeedSubscription(
       userId,
       feed.id,
-      feedUrl,
+      userFeedData.topicId,
+      userFeedData.url,
     );
 
     return {
@@ -131,26 +145,8 @@ export class FeedService {
   /**
    * Gets aggregated feed items from all active user feeds
    */
-  async getUserFeedItems(
-    userId: string,
-    limit: number = 20,
-    offset: number = 0,
-    sort: 'created_at' | 'published_at' = 'published_at',
-    order: 'asc' | 'desc' = 'desc',
-    title?: string,
-    feedId?: string,
-    feedType?: 'rss' | 'youtube',
-  ) {
-    return this.userFeedManagement.getUserFeedItems(
-      userId,
-      limit,
-      offset,
-      sort,
-      order,
-      title,
-      feedId,
-      feedType,
-    );
+  async getUserFeedItems(userId: string, query: GetFeedItemsQueryDto) {
+    return this.userFeedManagement.getUserFeedItems(userId, query);
   }
 
   /**

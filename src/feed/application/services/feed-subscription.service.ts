@@ -26,6 +26,7 @@ export class FeedSubscriptionService {
   async createUserFeedSubscription(
     userId: string,
     feedId: string,
+    topicId: string,
     feedUrl: string,
   ) {
     try {
@@ -48,6 +49,7 @@ export class FeedSubscriptionService {
         data: {
           user_id: userId,
           feed_id: feedId,
+          topic_id: topicId,
           is_active: true,
           access_permissions: 'read',
           notification_enabled: true,
