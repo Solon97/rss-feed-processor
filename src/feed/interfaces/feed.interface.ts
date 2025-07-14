@@ -1,3 +1,10 @@
+import { FeedType } from '@prisma/client';
+
+export interface FeedData {
+  name?: string;
+  url: string;
+  feed_type?: FeedType; // Optional, will be determined based on URL
+}
 export interface FeedItem {
   title: string;
   link: string;
@@ -14,13 +21,13 @@ export interface Feed {
 
 export interface FeedValidationResult {
   isValid: boolean;
-  type: 'rss' | 'youtube' | null;
+  type: FeedType | null;
   feedUrl?: string;
 }
 
 export interface FeedItemsResponse {
   feedUrl: string;
-  feedType: 'rss' | 'youtube';
+  feedType: FeedType;
   items: Array<{
     title: string;
     link: string;

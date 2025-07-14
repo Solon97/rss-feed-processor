@@ -4,7 +4,9 @@ import {
   FeedNotFoundException,
   FeedProcessingException,
 } from '../../../common/exceptions/feed.exceptions';
-import { GetFeedItemsQueryDto } from '@/feed/dto/feed.dto';
+import { GetFeedItemsQueryDto } from '../../dto/feed.dto';
+import { TopicResponseDto } from '../../dto/topic.dto';
+import { FeedType } from '@prisma/client';
 
 export interface UserFeedWithFeed {
   feed_id: string;
@@ -18,6 +20,7 @@ export interface UserFeedWithFeed {
     id: string;
     name: string;
     url: string;
+    feed_type: FeedType;
     status: 'active' | 'inactive' | 'error';
     created_at: string;
     last_fetched_at: string | null;
@@ -37,6 +40,8 @@ export interface FeedItemWithFeed {
     id: string;
     name: string;
     url: string;
+    feed_type: FeedType;
+    topic?: TopicResponseDto;
   };
 }
 
@@ -61,6 +66,7 @@ export class UserFeedManagementService {
               id: true,
               name: true,
               url: true,
+              feed_type: true,
               status: true,
               created_at: true,
               last_fetched_at: true,
@@ -89,6 +95,7 @@ export class UserFeedManagementService {
           id: userFeed.feeds.id,
           name: userFeed.feeds.name,
           url: userFeed.feeds.url,
+          feed_type: userFeed.feeds.feed_type,
           status: userFeed.feeds.status as 'active' | 'inactive' | 'error',
           created_at: userFeed.feeds.created_at.toISOString(),
           last_fetched_at:
@@ -252,19 +259,20 @@ export class UserFeedManagementService {
     }: GetFeedItemsQueryDto,
   ): Promise<FeedItemWithFeed[]> {
     try {
-      // Build where clause with filters
+      // Build optimized where clause with proper indexing
       const whereClause: any = {
         feeds: {
           user_feeds: {
             some: {
               user_id: userId,
               is_active: true,
+              ...(topicId && { topic_id: topicId }),
             },
           },
         },
       };
 
-      // Add title filter if provided
+      // Add title filter with proper text search
       if (title) {
         whereClause.title = {
           contains: title,
@@ -272,39 +280,50 @@ export class UserFeedManagementService {
         };
       }
 
-      // Add feed_id filter if provided
+      // Add feed_id filter (most selective first)
       if (feedId) {
         whereClause.feed_id = feedId;
       }
 
-      // Add feed_type filter if provided
+      // Add feed_type filter using the enum field
       if (feedType) {
-        if (feedType === 'youtube') {
-          whereClause.feeds.url = {
-            contains: 'youtube.com',
-          };
-        } else if (feedType === 'rss') {
-          whereClause.feeds.url = {
-            not: {
-              contains: 'youtube.com',
-            },
-          };
-        }
-      }
-
-      // Add topic filter if provided
-      if (topicId) {
-        whereClause.feeds.user_feeds.some.topic_id = topicId;
+        whereClause.feeds.feed_type = feedType;
       }
 
       const feedItems = await this.prisma.feed_items.findMany({
         where: whereClause,
-        include: {
+        select: {
+          id: true,
+          title: true,
+          url: true,
+          content: true,
+          thumbnail: true,
+          duration: true,
+          published_at: true,
+          created_at: true,
           feeds: {
             select: {
               id: true,
               name: true,
               url: true,
+              feed_type: true,
+              user_feeds: {
+                select: {
+                  topics: {
+                    select: {
+                      id: true,
+                      name: true,
+                      color: true,
+                      created_at: true,
+                      updated_at: true,
+                    },
+                  },
+                },
+                where: {
+                  user_id: userId,
+                },
+                take: 1,
+              },
             },
           },
         },
@@ -328,6 +347,18 @@ export class UserFeedManagementService {
           id: item.feeds.id,
           name: item.feeds.name,
           url: item.feeds.url,
+          feed_type: item.feeds.feed_type,
+          topic: item.feeds.user_feeds[0]?.topics
+            ? {
+                id: item.feeds.user_feeds[0].topics.id,
+                name: item.feeds.user_feeds[0].topics.name,
+                color: item.feeds.user_feeds[0].topics.color,
+                created_at:
+                  item.feeds.user_feeds[0].topics.created_at.toISOString(),
+                updated_at:
+                  item.feeds.user_feeds[0].topics.updated_at.toISOString(),
+              }
+            : null,
         },
       }));
     } catch (error) {
@@ -400,12 +431,38 @@ export class UserFeedManagementService {
             },
           },
         },
-        include: {
+        select: {
+          id: true,
+          title: true,
+          url: true,
+          content: true,
+          thumbnail: true,
+          duration: true,
+          published_at: true,
+          created_at: true,
           feeds: {
             select: {
               id: true,
               name: true,
               url: true,
+              feed_type: true,
+              user_feeds: {
+                select: {
+                  topics: {
+                    select: {
+                      id: true,
+                      name: true,
+                      color: true,
+                      created_at: true,
+                      updated_at: true,
+                    },
+                  },
+                },
+                where: {
+                  user_id: userId,
+                },
+                take: 1,
+              },
             },
           },
         },
@@ -428,6 +485,18 @@ export class UserFeedManagementService {
           id: feedItem.feeds.id,
           name: feedItem.feeds.name,
           url: feedItem.feeds.url,
+          feed_type: feedItem.feeds.feed_type,
+          topic: feedItem.feeds.user_feeds[0]?.topics
+            ? {
+                id: feedItem.feeds.user_feeds[0].topics.id,
+                name: feedItem.feeds.user_feeds[0].topics.name,
+                color: feedItem.feeds.user_feeds[0].topics.color,
+                created_at:
+                  feedItem.feeds.user_feeds[0].topics.created_at.toISOString(),
+                updated_at:
+                  feedItem.feeds.user_feeds[0].topics.updated_at.toISOString(),
+              }
+            : null,
         },
       };
     } catch (error) {

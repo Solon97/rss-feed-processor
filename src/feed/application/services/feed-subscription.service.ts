@@ -6,6 +6,7 @@ import {
   FeedNotFoundException,
   FeedProcessingException,
 } from '../../../common/exceptions/feed.exceptions';
+import { determineFeedType } from '../../utils/feed-type.utils';
 
 /**
  * Service for Feed Subscription Management
@@ -85,11 +86,15 @@ export class FeedSubscriptionService {
     }>;
   }) {
     try {
+      // Determine the feed type based on URL
+      const feedType = determineFeedType(feedData.url);
+
       // Create the feed record
       const feed = await this.prisma.feeds.create({
         data: {
           name: feedData.name || 'Feed sem título',
           url: feedData.url,
+          feed_type: feedType,
           is_active: true,
           status: 'active',
           last_fetched_at: new Date(),

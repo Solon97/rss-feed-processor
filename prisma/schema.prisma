@@ -7,6 +7,11 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
+enum FeedType {
+    youtube
+    rss
+}
+
 model feed_items {
     id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
     feed_id      String    @db.Uuid
@@ -23,12 +28,15 @@ model feed_items {
     @@index([created_at], map: "idx_feed_items_created_at")
     @@index([feed_id], map: "idx_feed_items_feed_id")
     @@index([published_at], map: "idx_feed_items_published_at")
+    @@index([feed_id, published_at(sort: Desc)], map: "idx_feed_items_feed_published")
+    @@index([feed_id, created_at(sort: Desc)], map: "idx_feed_items_feed_created")
 }
 
 model feeds {
     id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
     name            String
     url             String       @unique
+    feed_type       FeedType
     is_active       Boolean?     @default(true)
     status          String?      @default("active")
     created_at      DateTime?    @default(now()) @db.Timestamptz(6)
@@ -41,6 +49,7 @@ model feeds {
     @@index([is_active], map: "idx_feeds_is_active")
     @@index([status], map: "idx_feeds_status")
     @@index([url], map: "idx_feeds_url")
+    @@index([feed_type], map: "idx_feeds_feed_type")
 }
 
 model topics {
@@ -78,6 +87,8 @@ model user_feeds {
     @@index([is_active], map: "idx_user_feeds_is_active")
     @@index([last_viewed_at], map: "idx_user_feeds_last_viewed_at")
     @@index([user_id], map: "idx_user_feeds_user_id")
+    @@index([user_id, is_active, topic_id], map: "idx_user_feeds_user_active_topic")
+    @@index([user_id, is_active], map: "idx_user_feeds_user_active")
 }
 
 model user_subscriptions {

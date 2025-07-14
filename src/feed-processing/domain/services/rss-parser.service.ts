@@ -8,6 +8,7 @@ import {
   FeedTimeoutException,
   FeedNetworkException,
 } from '@/common/exceptions/feed.exceptions';
+import { FeedType } from '@prisma/client';
 
 @Injectable()
 export class RssParserService {
@@ -27,10 +28,7 @@ export class RssParserService {
   /**
    * Processa feed RSS e retorna os 5 itens mais recentes
    */
-  async parseRssFeed(
-    rssUrl: string,
-    feedType: 'rss' | 'youtube',
-  ): Promise<Feed> {
+  async parseRssFeed(rssUrl: string, feedType: FeedType): Promise<Feed> {
     try {
       const feed = await this.parser.parseURL(rssUrl);
       // Processa apenas os 5 itens mais recentes

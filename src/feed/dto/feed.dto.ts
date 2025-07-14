@@ -11,6 +11,7 @@ import {
   Max,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
+import { FeedType } from '@prisma/client';
 
 export class ValidateFeedDto {
   @IsUrl(
@@ -111,7 +112,7 @@ export class GetFeedItemsQueryDto {
   @IsEnum(['rss', 'youtube'], {
     message: 'feed_type deve ser rss ou youtube',
   })
-  feed_type?: 'rss' | 'youtube';
+  feed_type?: FeedType;
 
   @IsOptional()
   @IsUUID(4, { message: 'topic_id deve ser um UUID válido' })
@@ -121,7 +122,7 @@ export class GetFeedItemsQueryDto {
     return this.feed_id;
   }
 
-  get feedType(): 'rss' | 'youtube' | undefined {
+  get feedType(): FeedType | undefined {
     return this.feed_type;
   }
 
