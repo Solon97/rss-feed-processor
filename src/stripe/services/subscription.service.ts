@@ -25,10 +25,28 @@ export class SubscriptionService {
       });
       return;
     }
-
+    const item = subscription.items.data[0];
     try {
-      const currentPeriodStart = new Date(subscription.start_date * 1000);
-      const currentPeriodEnd = new Date(subscription.ended_at * 1000);
+      // Log do objeto subscription para ver propriedades disponíveis
+      this.logger.log('Subscription object properties', {
+        subscriptionId: subscription.id,
+        availableProps: Object.keys(subscription),
+        itemCount: subscription.items.data.length,
+        firstItemProps: subscription.items.data[0]
+          ? Object.keys(subscription.items.data[0])
+          : [],
+        periodStart: subscription.items.data[0]?.current_period_start,
+        periodEnd: subscription.items.data[0]?.current_period_end,
+      });
+
+      // Usar current_period_start e current_period_end dos itens da subscription
+      const currentPeriodStart = item.current_period_start
+        ? new Date(item.current_period_start * 1000)
+        : new Date(subscription.created * 1000);
+
+      const currentPeriodEnd = item.current_period_end
+        ? new Date(item.current_period_end * 1000)
+        : new Date(subscription.created * 1000);
 
       await this.prisma.user_subscriptions.upsert({
         where: {
@@ -125,6 +143,38 @@ export class SubscriptionService {
       }
     } catch (error) {
       this.logger.error('Error updating subscription status', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update subscription metadata in Stripe
+   */
+  async updateSubscriptionMetadata(
+    subscriptionId: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      this.logger.log('Updating subscription metadata in Stripe', {
+        subscriptionId,
+        userId,
+      });
+
+      await this.stripe.subscriptions.update(subscriptionId, {
+        metadata: {
+          user_id: userId,
+        },
+      });
+
+      this.logger.log('Successfully updated subscription metadata', {
+        subscriptionId,
+        userId,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Error updating subscription metadata for ${subscriptionId}`,
+        error,
+      );
       throw error;
     }
   }

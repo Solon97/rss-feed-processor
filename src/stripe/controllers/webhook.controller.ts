@@ -31,7 +31,7 @@ export class WebhookController {
     @Req() request: any, // Using any to access raw body properties
     @Headers('stripe-signature') signature: string,
   ) {
-    console.log('ping');
+    console.log('ping - webhook received');
     const endpointSecret = this.configService.get<string>(
       'STRIPE_WEBHOOK_SECRET',
     );
@@ -46,13 +46,15 @@ export class WebhookController {
       throw new BadRequestException('Missing stripe-signature header');
     }
 
-    // Get the raw body from the request
+    // Get the raw body from the request (available due to rawBody: true in main.ts)
     const body = request.rawBody || request.body;
 
     if (!body) {
       this.logger.error('No body received in webhook request');
       throw new BadRequestException('No body received');
     }
+
+    console.log('Body type:', typeof body, 'Length:', body?.length);
 
     try {
       const event = this.stripeService.verifyWebhookSignature(
@@ -61,6 +63,7 @@ export class WebhookController {
         endpointSecret,
       );
 
+      console.log('Event verified:', event.type);
       await this.webhookService.processWebhookEvent(event);
 
       return { received: true };

@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import { AppController } from './app.controller';
@@ -12,7 +12,6 @@ import { PrismaModule } from './prisma/prisma.module';
 import { QueueModule } from './queue/queue.module';
 import { StripeModule } from './stripe/stripe.module';
 import { SubscriptionModule } from './subscription/subscription.module';
-import { RawBodyMiddleware } from './stripe/middleware/raw-body.middleware';
 
 @Module({
   imports: [
@@ -38,8 +37,4 @@ import { RawBodyMiddleware } from './stripe/middleware/raw-body.middleware';
     },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RawBodyMiddleware).forRoutes('stripe/webhooks');
-  }
-}
+export class AppModule {}

@@ -40,6 +40,7 @@ export class WebhookService {
           break;
 
         case 'invoice.payment_succeeded':
+        case 'invoice.paid': // Novo evento que substitui invoice.payment_succeeded
           this.logger.log(`Processing webhook event: ${event.type}`, {
             eventId: event.id,
           });
@@ -53,6 +54,15 @@ export class WebhookService {
             eventId: event.id,
           });
           await this.handlePaymentFailed(event.data.object as Stripe.Invoice);
+          break;
+
+        case 'checkout.session.completed':
+          this.logger.log(`Processing webhook event: ${event.type}`, {
+            eventId: event.id,
+          });
+          await this.handleCheckoutSessionCompleted(
+            event.data.object as Stripe.Checkout.Session,
+          );
           break;
 
         // Adiciona suporte para invoice_payment.paid (novo formato do Stripe)
@@ -69,6 +79,44 @@ export class WebhookService {
     } catch (error) {
       this.logger.error(`Error processing webhook event ${event.type}`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Handle checkout session completion
+   */
+  private async handleCheckoutSessionCompleted(
+    session: Stripe.Checkout.Session,
+  ): Promise<void> {
+    this.logger.log('Processing checkout session completion', {
+      sessionId: session.id,
+      customerId: session.customer,
+      subscriptionId: session.subscription,
+    });
+
+    // Se a session tem subscription, vamos buscar e atualizar os metadados
+    if (session.subscription && session.client_reference_id) {
+      try {
+        // O client_reference_id deve conter o user_id
+        const userId = session.client_reference_id;
+
+        this.logger.log('Updating subscription metadata with user_id', {
+          subscriptionId: session.subscription,
+          userId,
+        });
+
+        // Atualizar os metadados da subscription com o user_id
+        // Isso será usado quando o webhook de subscription.created for processado
+        await this.subscriptionService.updateSubscriptionMetadata(
+          session.subscription as string,
+          userId,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Error updating subscription metadata from checkout session ${session.id}`,
+          error,
+        );
+      }
     }
   }
 

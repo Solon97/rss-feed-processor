@@ -45,6 +45,7 @@ export class CheckoutService {
       const session = await this.createCheckoutSession(
         customerData.stripeCustomerId,
         createCheckoutDto,
+        user.id, // Passar o user.id
       );
 
       this.logger.log(`Checkout session created successfully`, {
@@ -99,18 +100,20 @@ export class CheckoutService {
       throw new BadRequestException('User already has an active subscription');
     }
   }
-
+  s;
   /**
    * Create Stripe checkout session
    */
   private async createCheckoutSession(
     customerId: string,
     createCheckoutDto: CreateCheckoutSessionDto,
+    userId?: string, // Adicionar userId como parâmetro
   ): Promise<Stripe.Checkout.Session> {
     try {
       const session = await this.stripe.checkout.sessions.create({
         mode: 'subscription',
         customer: customerId,
+        client_reference_id: userId, // Importante: passa o user_id
         line_items: [
           {
             price: createCheckoutDto.priceId,
@@ -125,10 +128,12 @@ export class CheckoutService {
         subscription_data: {
           metadata: {
             created_by: 'checkout_service',
+            user_id: userId, // Também no metadata da subscription
           },
         },
         metadata: {
           created_by: 'checkout_service',
+          user_id: userId, // E no metadata da session
         },
       });
 
