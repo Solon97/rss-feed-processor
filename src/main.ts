@@ -5,7 +5,9 @@ import { PrismaService } from './prisma/prisma.service';
 import { EnvironmentValidationService } from './config/environment-validation.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true, // Enable raw body parsing globally
+  });
 
   // Validar variáveis de ambiente na inicialização
   const envValidationService = app.get(EnvironmentValidationService);

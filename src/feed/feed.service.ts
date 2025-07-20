@@ -150,6 +150,13 @@ export class FeedService {
   }
 
   /**
+   * Deactivates all feeds for a user when subscription is cancelled
+   */
+  async deactivateAllUserFeeds(userId: string): Promise<void> {
+    return this.userFeedManagement.deactivateAllUserFeeds(userId);
+  }
+
+  /**
    * Updates the last_viewed_at timestamp for a user feed
    */
   async updateLastViewed(userId: string, feedId: string): Promise<void> {

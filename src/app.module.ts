@@ -1,16 +1,18 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { FeedModule } from './feed/feed.module';
-import { FeedProcessingModule } from './feed-processing/feed-processing.module';
 import { AuthModule } from './auth/auth.module';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { ConfigurationModule } from './config/configuration.module';
+import { FeedProcessingModule } from './feed-processing/feed-processing.module';
+import { FeedModule } from './feed/feed.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { QueueModule } from './queue/queue.module';
-import { ConfigurationModule } from './config/configuration.module';
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { StripeModule } from './stripe/stripe.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { RawBodyMiddleware } from './stripe/middleware/raw-body.middleware';
 
 @Module({
   imports: [
@@ -25,6 +27,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
     FeedModule,
     AuthModule,
     SubscriptionModule,
+    StripeModule,
   ],
   controllers: [AppController],
   providers: [
@@ -35,4 +38,8 @@ import { SubscriptionModule } from './subscription/subscription.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RawBodyMiddleware).forRoutes('stripe/webhooks');
+  }
+}

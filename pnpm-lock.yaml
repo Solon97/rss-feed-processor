@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@golevelup/nestjs-webhooks':
+        specifier: ^0.2.21
+        version: 0.2.21(body-parser@1.20.3)
       '@mozilla/readability':
         specifier: ^0.6.0
         version: 0.6.0
@@ -80,6 +83,9 @@ importers:
       rxjs:
         specifier: ^7.8.1
         version: 7.8.2
+      stripe:
+        specifier: ^18.3.0
+        version: 18.3.0(@types/node@20.19.1)
       undici:
         specifier: ^7.10.0
         version: 7.10.0
@@ -397,6 +403,11 @@ packages:
     resolution: {integrity: sha512-dTXqBjCl7nFmnhlyeDjjPtX+sdfYBWFH9PUKNqAYttvBiczKcYXxr7/0A0wZ+g1FB1tmMzsOzedgr6xap/AB9g==}
     engines: {node: '>=16.0.0'}
     hasBin: true
+
+  '@golevelup/nestjs-webhooks@0.2.21':
+    resolution: {integrity: sha512-GDtXTTm7OB00g+n3xYfFmJedhlEknABNRhdJBbloWqbrKZUcmscdr/HJRVE5jh4tJlvJq8zW0ZY4ooruU44D5w==}
+    peerDependencies:
+      body-parser: ^2.2.0
 
   '@humanwhocodes/config-array@0.13.0':
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -3056,6 +3067,15 @@ packages:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
 
+  stripe@18.3.0:
+    resolution: {integrity: sha512-FkxrTUUcWB4CVN2yzgsfF/YHD6WgYHduaa7VmokCy5TLCgl5UNJkwortxcedrxSavQ8Qfa4Ir4JxcbIYiBsyLg==}
+    engines: {node: '>=12.*'}
+    peerDependencies:
+      '@types/node': '>=12.x.x'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
   strtok3@10.3.1:
     resolution: {integrity: sha512-3JWEZM6mfix/GCJBBUrkA8p2Id2pBkyTkVCJKto55w080QBKZ+8R171fGrbiSp+yMO/u6F8/yUh7K4V9K+YCnw==}
     engines: {node: '>=18'}
@@ -3757,6 +3777,10 @@ snapshots:
       yargs: 17.7.2
     transitivePeerDependencies:
       - '@types/node'
+
+  '@golevelup/nestjs-webhooks@0.2.21(body-parser@1.20.3)':
+    dependencies:
+      body-parser: 1.20.3
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
@@ -6885,6 +6909,12 @@ snapshots:
   strip-final-newline@2.0.0: {}
 
   strip-json-comments@3.1.1: {}
+
+  stripe@18.3.0(@types/node@20.19.1):
+    dependencies:
+      qs: 6.14.0
+    optionalDependencies:
+      '@types/node': 20.19.1
 
   strtok3@10.3.1:
     dependencies:

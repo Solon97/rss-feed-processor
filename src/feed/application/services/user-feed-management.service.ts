@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   FeedNotFoundException,
@@ -51,6 +51,8 @@ export interface FeedItemWithFeed {
  */
 @Injectable()
 export class UserFeedManagementService {
+  private readonly logger = new Logger(UserFeedManagementService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
@@ -189,6 +191,29 @@ export class UserFeedManagementService {
       }
       throw new FeedProcessingException(
         'remoção de inscrição do feed',
+        error.message,
+      );
+    }
+  }
+
+  /**
+   * Deactivates all feeds for a user when subscription is cancelled
+   */
+  async deactivateAllUserFeeds(userId: string): Promise<void> {
+    try {
+      await this.prisma.user_feeds.updateMany({
+        where: {
+          user_id: userId,
+          is_active: true,
+        },
+        data: {
+          is_active: false,
+          updated_at: new Date(),
+        },
+      });
+    } catch (error) {
+      throw new FeedProcessingException(
+        'desativação de todos os feeds do usuário',
         error.message,
       );
     }

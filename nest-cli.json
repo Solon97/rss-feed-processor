@@ -3,6 +3,18 @@
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "webpack": true
+  },
+  "projects": {
+    "abstract-stripe": {
+      "type": "library",
+      "root": "libs/abstract-stripe",
+      "entryFile": "index",
+      "sourceRoot": "libs/abstract-stripe/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/abstract-stripe/tsconfig.lib.json"
+      }
+    }
   }
 }

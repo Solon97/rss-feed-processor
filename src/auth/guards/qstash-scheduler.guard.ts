@@ -6,7 +6,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Request } from 'express';
 
 @Injectable()
 export class QStashSchedulerGuard implements CanActivate {
@@ -15,7 +14,7 @@ export class QStashSchedulerGuard implements CanActivate {
   constructor(private readonly configService: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest();
     const scheduleId = request.headers['upstash-schedule-id'] as string;
     const expectedScheduleId =
       this.configService.get<string>('QSTASH_SCHEDULE_ID');

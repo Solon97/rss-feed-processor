@@ -14,6 +14,12 @@
       "@/*": [
         "src/*"
       ],
+      "@app/abstract-stripe": [
+        "libs/abstract-stripe/src"
+      ],
+      "@app/abstract-stripe/*": [
+        "libs/abstract-stripe/src/*"
+      ]
     },
     "incremental": true,
     "skipLibCheck": true,

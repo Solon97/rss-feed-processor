@@ -91,6 +91,18 @@ model user_feeds {
     @@index([user_id, is_active], map: "idx_user_feeds_user_active")
 }
 
+model stripe_customers {
+    id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+    user_id            String    @unique @db.Uuid
+    stripe_customer_id String    @unique
+    email              String
+    created_at         DateTime? @default(now()) @db.Timestamptz(6)
+    updated_at         DateTime? @default(now()) @db.Timestamptz(6)
+
+    @@index([user_id], map: "idx_stripe_customers_user_id")
+    @@index([stripe_customer_id], map: "idx_stripe_customers_stripe_id")
+}
+
 model user_subscriptions {
     id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
     user_id                String    @db.Uuid
