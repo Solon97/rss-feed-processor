@@ -13,7 +13,17 @@ Este módulo fornece integração completa com a API do Stripe, incluindo:
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+# Price IDs for subscription plans
+STRIPE_MONTHLY_PRICE_ID=price_...
+STRIPE_YEARLY_PRICE_ID=price_...
 ```
+
+### How to get Price IDs:
+1. Acesse o dashboard do Stripe
+2. Vá para Products > [Seu Produto]
+3. Copie os Price IDs dos planos mensais e anuais
+4. Configure as variáveis `STRIPE_MONTHLY_PRICE_ID` e `STRIPE_YEARLY_PRICE_ID`
 
 ## API Version
 Configurado para usar a versão `2024-12-18.acacia` da API do Stripe.

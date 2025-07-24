@@ -1,4 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
 export interface PricesResponse {
@@ -19,39 +20,50 @@ export interface PricesResponse {
 export class StripeService {
   private readonly logger = new Logger(StripeService.name);
 
-  constructor(@Inject('STRIPE_CLIENT') private readonly stripe: Stripe) {}
+  constructor(
+    @Inject('STRIPE_CLIENT') private readonly stripe: Stripe,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
-   * Get all available prices with optional filtering
+   * Get monthly and yearly prices using specific price IDs from environment
    */
   async getActivePrices(): Promise<PricesResponse> {
     try {
-      const pricesResponse = await this.stripe.prices.list({
-        expand: ['data.product'],
-      });
+      const monthlyPriceId = this.configService.get<string>(
+        'STRIPE_MONTHLY_PRICE_ID',
+      );
+      const yearlyPriceId = this.configService.get<string>(
+        'STRIPE_YEARLY_PRICE_ID',
+      );
 
-      const prices = pricesResponse.data.reduce((acc, price) => {
-        if (price.recurring?.interval === 'month') {
-          acc.monthly = {
-            id: price.id,
-            interval: price.recurring.interval,
-            unit_amount: price.unit_amount || 0,
-            currency: price.currency,
-          };
-        } else if (price.recurring?.interval === 'year') {
-          acc.yearly = {
-            id: price.id,
-            interval: price.recurring.interval,
-            unit_amount: price.unit_amount || 0,
-            currency: price.currency,
-          };
-        }
-        return acc;
-      }, {} as PricesResponse);
+      if (!monthlyPriceId || !yearlyPriceId) {
+        throw new Error(
+          'STRIPE_MONTHLY_PRICE_ID and STRIPE_YEARLY_PRICE_ID must be configured',
+        );
+      }
 
-      return prices;
+      const [monthlyPrice, yearlyPrice] = await Promise.all([
+        this.stripe.prices.retrieve(monthlyPriceId, { expand: ['product'] }),
+        this.stripe.prices.retrieve(yearlyPriceId, { expand: ['product'] }),
+      ]);
+
+      return {
+        monthly: {
+          id: monthlyPrice.id,
+          interval: 'month',
+          unit_amount: monthlyPrice.unit_amount || 0,
+          currency: monthlyPrice.currency,
+        },
+        yearly: {
+          id: yearlyPrice.id,
+          interval: 'year',
+          unit_amount: yearlyPrice.unit_amount || 0,
+          currency: yearlyPrice.currency,
+        },
+      };
     } catch (error) {
-      this.logger.error('Error fetching prices from Stripe', error);
+      this.logger.error('Error fetching specific prices from Stripe', error);
       throw error;
     }
   }

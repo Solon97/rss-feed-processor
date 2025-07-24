@@ -43,6 +43,17 @@ export class EnvironmentValidationService {
       requiredVars: ['YOUTUBE_API_KEY'],
       enabled: true,
     },
+    {
+      name: 'Stripe',
+      description: 'Serviço de pagamentos e assinaturas',
+      requiredVars: [
+        'STRIPE_SECRET_KEY',
+        'STRIPE_WEBHOOK_SECRET',
+        'STRIPE_MONTHLY_PRICE_ID',
+        'STRIPE_YEARLY_PRICE_ID',
+      ],
+      enabled: true,
+    },
   ];
 
   constructor(private readonly configService: ConfigService) {}
