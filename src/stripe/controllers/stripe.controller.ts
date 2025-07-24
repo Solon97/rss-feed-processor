@@ -12,7 +12,7 @@ export class StripeController {
    */
   @Get('prices')
   async getPrices() {
-    const prices = this.stripeService.getActivePrices();
+    const prices = await this.stripeService.getActivePrices();
     return {
       success: true,
       data: prices,
@@ -24,7 +24,7 @@ export class StripeController {
    */
   @Get('prices/:id')
   async getPrice(@Param('id') id: string) {
-    const price = this.stripeService.getPrice(id);
+    const price = await this.stripeService.getPrice(id);
     return {
       success: true,
       data: price,
