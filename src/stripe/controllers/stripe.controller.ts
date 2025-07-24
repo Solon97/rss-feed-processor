@@ -12,7 +12,11 @@ export class StripeController {
    */
   @Get('prices')
   async getPrices() {
-    return this.stripeService.getActivePrices();
+    const prices = this.stripeService.getActivePrices();
+    return {
+      success: true,
+      data: prices,
+    };
   }
 
   /**
@@ -20,6 +24,10 @@ export class StripeController {
    */
   @Get('prices/:id')
   async getPrice(@Param('id') id: string) {
-    return this.stripeService.getPrice(id);
+    const price = this.stripeService.getPrice(id);
+    return {
+      success: true,
+      data: price,
+    };
   }
 }
