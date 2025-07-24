@@ -18,6 +18,13 @@ export class CreateCheckoutSessionDto {
   mode?: 'payment' | 'subscription' | 'setup';
 }
 
+export class ResponseDto<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+  error?: string;
+}
+
 export class CheckoutSessionResponseDto {
   sessionId: string;
   checkoutUrl: string;

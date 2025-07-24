@@ -1,22 +1,23 @@
 import {
-  Controller,
-  Post,
   Body,
-  UseGuards,
-  Logger,
+  Controller,
   Get,
+  Logger,
   Param,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
-import { AppAuthGuard } from '../../auth/guards/auth.guard';
 import {
   CurrentUser,
   UserInfo,
 } from '../../auth/decorators/current-user.decorator';
-import { CheckoutService } from '../services/checkout.service';
+import { AppAuthGuard } from '../../auth/guards/auth.guard';
 import {
-  CreateCheckoutSessionDto,
   CheckoutSessionResponseDto,
+  CreateCheckoutSessionDto,
+  ResponseDto,
 } from '../dto/checkout.dto';
+import { CheckoutService } from '../services/checkout.service';
 
 @Controller('stripe/checkout')
 @UseGuards(AppAuthGuard)
@@ -29,13 +30,18 @@ export class CheckoutController {
   async createCheckoutSession(
     @CurrentUser() user: UserInfo,
     @Body() createCheckoutDto: CreateCheckoutSessionDto,
-  ): Promise<CheckoutSessionResponseDto> {
+  ): Promise<ResponseDto<CheckoutSessionResponseDto>> {
     this.logger.log(`Creating checkout session for user ${user.id}`);
 
-    return this.checkoutService.createSubscriptionCheckoutSession(
-      user,
-      createCheckoutDto,
-    );
+    const checkoutData =
+      await this.checkoutService.createSubscriptionCheckoutSession(
+        user,
+        createCheckoutDto,
+      );
+    return {
+      success: true,
+      data: checkoutData,
+    };
   }
 
   @Get('session/:sessionId')
