@@ -5,11 +5,11 @@ export class CreateCheckoutSessionDto {
   @IsString()
   priceId: string;
 
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @IsOptional()
   successUrl?: string;
 
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @IsOptional()
   cancelUrl?: string;
 
@@ -37,7 +37,7 @@ export class PortalSessionDto {
   @IsString()
   customerId: string;
 
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @IsOptional()
   returnUrl?: string;
 }
