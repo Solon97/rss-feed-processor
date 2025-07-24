@@ -1,7 +1,9 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { StripeService } from '../services/stripe.service';
+import { AppAuthGuard } from '@/auth/guards/auth.guard';
 
 @Controller('stripe')
+@UseGuards(AppAuthGuard)
 export class StripeController {
   constructor(private readonly stripeService: StripeService) {}
 
