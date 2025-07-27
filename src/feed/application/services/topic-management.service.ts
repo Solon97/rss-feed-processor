@@ -76,8 +76,14 @@ export class TopicManagementService {
    */
   async getUserTopics(userId: string): Promise<TopicResponseDto[]> {
     try {
+      const topicIds = await this.prisma.user_feeds.findMany({
+        select: { topic_id: true },
+        distinct: ['topic_id'],
+        where: { user_id: userId, is_active: true },
+      });
+
       const topics = await this.prisma.topics.findMany({
-        where: { user_id: userId },
+        where: { user_id: userId, id: { in: topicIds.map((t) => t.topic_id) } },
         orderBy: { created_at: 'desc' },
       });
 
