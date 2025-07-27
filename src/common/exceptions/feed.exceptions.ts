@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   InternalServerErrorException,
   NotFoundException,
   RequestTimeoutException,
@@ -8,131 +9,144 @@ import {
 } from '@nestjs/common';
 
 /**
- * Exception para URL inválida
+ * Exception for invalid URL
  */
 export class InvalidUrlException extends BadRequestException {
   constructor(url?: string) {
     super({
       error: 'INVALID_URL',
-      message: 'A URL fornecida é inválida',
+      message: 'The provided URL is invalid',
       details: url ? `URL: ${url}` : undefined,
     });
   }
 }
 
 /**
- * Exception para feed não encontrado ou inválido
+ * Exception for feed not found or invalid
  */
 export class FeedNotFoundException extends NotFoundException {
   constructor(url: string) {
     super({
       error: 'FEED_NOT_FOUND',
-      message: 'Feed RSS não encontrado ou inválido',
+      message: 'RSS feed not found or invalid',
       details: `URL: ${url}`,
     });
   }
 }
 
 /**
- * Exception para timeout de requisição
+ * Exception for request timeout
  */
 export class FeedTimeoutException extends RequestTimeoutException {
   constructor(url: string) {
     super({
       error: 'FEED_TIMEOUT',
-      message: 'Timeout ao acessar o feed',
+      message: 'Timeout while accessing the feed',
       details: `URL: ${url}`,
     });
   }
 }
 
 /**
- * Exception para erro de rede ao acessar feed
+ * Exception for network error when accessing feed
  */
 export class FeedNetworkException extends BadRequestException {
   constructor(url: string, statusCode?: number) {
     super({
       error: 'FEED_NETWORK_ERROR',
-      message: 'Erro de rede ao acessar o feed',
+      message: 'Network error while accessing the feed',
       details: `URL: ${url}${statusCode ? `, Status: ${statusCode}` : ''}`,
     });
   }
 }
 
 /**
- * Exception para conteúdo não encontrado ou inacessível
+ * Exception for content not found or inaccessible
  */
 export class ContentNotFoundException extends NotFoundException {
   constructor(url: string) {
     super({
       error: 'CONTENT_NOT_FOUND',
-      message: 'Conteúdo não encontrado ou inacessível',
+      message: 'Content not found or inaccessible',
       details: `URL: ${url}`,
     });
   }
 }
 
 /**
- * Exception para falha na extração de conteúdo
+ * Exception for content extraction failure
  */
 export class ContentExtractionException extends UnprocessableEntityException {
   constructor(url: string, reason?: string) {
     super({
       error: 'CONTENT_EXTRACTION_FAILED',
-      message: 'Falha ao extrair o conteúdo da página',
-      details: `URL: ${url}${reason ? `, Motivo: ${reason}` : ''}`,
+      message: 'Failed to extract content from the page',
+      details: `URL: ${url}${reason ? `, Reason: ${reason}` : ''}`,
     });
   }
 }
 
 /**
- * Exception para usuário já inscrito no feed
+ * Exception for user already subscribed to feed
  */
 export class UserAlreadySubscribedException extends ConflictException {
   constructor(feedUrl: string) {
     super({
       error: 'USER_ALREADY_SUBSCRIBED',
-      message: 'Usuário já está inscrito neste feed',
+      message: 'User is already subscribed to this feed',
       details: `Feed: ${feedUrl}`,
     });
   }
 }
 
 /**
- * Exception para erro de parsing do feed
+ * Exception for feed parsing error
  */
 export class FeedParsingException extends UnprocessableEntityException {
   constructor(url: string, reason?: string) {
     super({
       error: 'FEED_PARSING_ERROR',
-      message: 'Erro ao processar o conteúdo do feed',
-      details: `URL: ${url}${reason ? `, Motivo: ${reason}` : ''}`,
+      message: 'Error processing feed content',
+      details: `URL: ${url}${reason ? `, Reason: ${reason}` : ''}`,
     });
   }
 }
 
 /**
- * Exception para erro interno não específico
+ * Exception for non-specific internal error
  */
 export class FeedProcessingException extends InternalServerErrorException {
   constructor(operation: string, reason?: string) {
     super({
       error: 'FEED_PROCESSING_ERROR',
-      message: `Erro interno durante ${operation}`,
+      message: `Internal error during ${operation}`,
       details: reason,
     });
   }
 }
 
 /**
- * Exception para feed inativo ou desabilitado
+ * Exception for inactive or disabled feed
  */
 export class FeedInactiveException extends BadRequestException {
   constructor(feedUrl: string) {
     super({
       error: 'FEED_INACTIVE',
-      message: 'Feed está inativo ou desabilitado',
+      message: 'Feed is inactive or disabled',
       details: `URL: ${feedUrl}`,
+    });
+  }
+}
+
+/**
+ * Exception for subscription limit exceeded
+ */
+export class SubscriptionLimitExceededException extends ForbiddenException {
+  constructor(currentLimit: number = 1) {
+    super({
+      error: 'SUBSCRIPTION_LIMIT_EXCEEDED',
+      message: 'Feed subscription limit exceeded for your current plan',
+      details: `Current limit: ${currentLimit} feed(s). Please upgrade your subscription to add more feeds.`,
     });
   }
 }

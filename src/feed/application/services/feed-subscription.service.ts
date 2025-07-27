@@ -5,8 +5,11 @@ import {
   UserAlreadySubscribedException,
   FeedNotFoundException,
   FeedProcessingException,
+  SubscriptionLimitExceededException,
 } from '../../../common/exceptions/feed.exceptions';
 import { determineFeedType } from '../../utils/feed-type.utils';
+
+const FREE_PLAN_LIMIT = 1;
 
 /**
  * Service for Feed Subscription Management
@@ -45,36 +48,7 @@ export class FeedSubscriptionService {
         throw new UserAlreadySubscribedException(feedUrl);
       }
 
-      // Check if user has active subscription to allow multiple feeds
-      const activeSubscription = await this.prisma.user_subscriptions.findFirst(
-        {
-          where: {
-            user_id: userId,
-            status: {
-              in: ['active', 'trialing'],
-            },
-            current_period_end: {
-              gte: new Date(),
-            },
-          },
-        },
-      );
-
-      // If user doesn't have active subscription, check if they already have an active feed
-      if (!activeSubscription) {
-        const activeFeeds = await this.prisma.user_feeds.count({
-          where: {
-            user_id: userId,
-            is_active: true,
-          },
-        });
-
-        if (activeFeeds >= 1) {
-          throw new Error(
-            'Usuários sem assinatura ativa podem ter apenas um feed ativo. Considere fazer upgrade do seu plano.',
-          );
-        }
-      }
+      await this.canActivateNewFeed(userId);
 
       // Create user feed subscription
       const userFeed = await this.prisma.user_feeds.create({
@@ -97,7 +71,7 @@ export class FeedSubscriptionService {
       ) {
         throw error;
       }
-      throw new FeedProcessingException('criação de inscrição', error.message);
+      throw new FeedProcessingException('subscription creation', error.message);
     }
   }
 
@@ -123,7 +97,7 @@ export class FeedSubscriptionService {
       // Create the feed record
       const feed = await this.prisma.feeds.create({
         data: {
-          name: feedData.name || 'Feed sem título',
+          name: feedData.name || 'Untitled Feed',
           url: feedData.url,
           feed_type: feedType,
           is_active: true,
@@ -149,7 +123,7 @@ export class FeedSubscriptionService {
 
           feedItems.push(feedItem);
         } catch (error) {
-          console.error(`Erro ao salvar item ${item.link}:`, error.message);
+          console.error(`Error saving item ${item.link}:`, error.message);
           // Continue with next item instead of failing completely
         }
       }
@@ -159,7 +133,7 @@ export class FeedSubscriptionService {
 
       return feed;
     } catch (error) {
-      throw new FeedProcessingException('criação do feed', error.message);
+      throw new FeedProcessingException('feed creation', error.message);
     }
   }
 
@@ -170,5 +144,34 @@ export class FeedSubscriptionService {
     return this.prisma.feeds.findUnique({
       where: { url },
     });
+  }
+
+  async canActivateNewFeed(userId: string) {
+    const activeSubscription = await this.prisma.user_subscriptions.findFirst({
+      where: {
+        user_id: userId,
+        status: {
+          in: ['active', 'trialing'],
+        },
+        current_period_end: {
+          gte: new Date(),
+        },
+      },
+    });
+
+    if (activeSubscription) {
+      return;
+    }
+
+    const activeFeeds = await this.prisma.user_feeds.count({
+      where: {
+        user_id: userId,
+        is_active: true,
+      },
+    });
+
+    if (activeFeeds >= FREE_PLAN_LIMIT) {
+      throw new SubscriptionLimitExceededException(FREE_PLAN_LIMIT);
+    }
   }
 }
