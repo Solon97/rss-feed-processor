@@ -54,6 +54,13 @@ export class EnvironmentValidationService {
       ],
       enabled: true,
     },
+    {
+      name: 'Resend',
+      description: 'Serviço de envio de emails',
+      requiredVars: ['RESEND_API_KEY', 'RESEND_FROM_EMAIL'],
+      optionalVars: ['FRONTEND_URL'],
+      enabled: true,
+    },
   ];
 
   constructor(private readonly configService: ConfigService) {}

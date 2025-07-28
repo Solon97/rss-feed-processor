@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { EmailModule } from '../email/email.module';
 import { AppAuthGuard } from './guards/auth.guard';
 import { QStashSchedulerGuard } from './guards/qstash-scheduler.guard';
 import { SupabaseJwtStrategy } from './strategies/supabase-jwt.strategy';
@@ -12,6 +13,7 @@ import { SupabaseJwtStrategy } from './strategies/supabase-jwt.strategy';
   imports: [
     PassportModule,
     ConfigModule,
+    EmailModule,
     JwtModule.register({
       signOptions: { expiresIn: '1h' },
     }),

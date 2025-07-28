@@ -4,6 +4,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { EmailModule } from './email/email.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { ConfigurationModule } from './config/configuration.module';
 import { FeedProcessingModule } from './feed-processing/feed-processing.module';
@@ -25,6 +26,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
     FeedProcessingModule,
     FeedModule,
     AuthModule,
+    EmailModule,
     SubscriptionModule,
     StripeModule,
   ],
