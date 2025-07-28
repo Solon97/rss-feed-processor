@@ -126,14 +126,18 @@ export class AuthService {
   }
 
   /**
-   * Registra um novo usuário e envia email de boas-vindas
+   * Registra um novo usuário e envia email de confirmação
    */
   async register(
     email: string,
     password: string,
     name?: string,
-  ): Promise<AuthResponse> {
+  ): Promise<{ message: string; needsConfirmation: boolean }> {
     try {
+      const apiUrl =
+        this.configService.get<string>('API_URL') || 'http://localhost:3000';
+      const confirmationUrl = `${apiUrl}/auth/confirm`;
+
       const { data, error } = await this.supabase.auth.signUp({
         email,
         password,
@@ -141,6 +145,7 @@ export class AuthService {
           data: {
             name: name || '',
           },
+          emailRedirectTo: confirmationUrl,
         },
       });
 
@@ -148,12 +153,50 @@ export class AuthService {
         throw new BadRequestException(error.message);
       }
 
-      if (!data.user || !data.session) {
+      if (!data.user) {
         throw new BadRequestException('Erro ao criar conta');
       }
 
-      // Enviar email de boas-vindas de forma assíncrona
-      this.sendWelcomeEmailAsync(email, name);
+      // Enviar email de confirmação de forma assíncrona
+      // this.sendConfirmationEmailAsync(email, confirmationUrl, name);
+
+      return {
+        message:
+          'Conta criada com sucesso. Verifique seu email para confirmar a conta.',
+        needsConfirmation: true,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('Erro ao criar conta');
+    }
+  }
+
+  /**
+   * Confirma o email do usuário usando token OTP
+   */
+  async confirmEmail(
+    tokenHash: string,
+    type: string = 'email',
+  ): Promise<AuthResponse> {
+    try {
+      const { data, error } = await this.supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: type as any,
+      });
+
+      if (error) {
+        throw new BadRequestException(error.message);
+      }
+
+      if (!data.user || !data.session) {
+        throw new BadRequestException('Token inválido ou expirado');
+      }
+
+      // Enviar email de boas-vindas após confirmação
+      const userName = data.user.user_metadata?.name;
+      this.sendWelcomeEmailAsync(data.user.email!, userName);
 
       return {
         user: {
@@ -167,7 +210,28 @@ export class AuthService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new BadRequestException('Erro ao criar conta');
+      throw new BadRequestException('Erro ao confirmar email');
+    }
+  }
+
+  /**
+   * Envia email de confirmação de forma assíncrona
+   */
+  private async sendConfirmationEmailAsync(
+    email: string,
+    confirmationUrl: string,
+    name?: string,
+  ): Promise<void> {
+    try {
+      await this.emailService.sendEmailConfirmationEmail(
+        email,
+        confirmationUrl,
+        name,
+      );
+      this.logger.log(`Confirmation email sent successfully to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send confirmation email to ${email}`, error);
+      // Não falha o registro se o email não puder ser enviado
     }
   }
 

@@ -45,6 +45,33 @@ export class EmailService {
   }
 
   /**
+   * Sends an email confirmation email to verify user's email address
+   */
+  async sendEmailConfirmationEmail(
+    userEmail: string,
+    confirmationUrl: string,
+    userName?: string,
+  ): Promise<EmailSendResult> {
+    const fromEmail = this.getFromEmailAddress();
+    const supportEmail =
+      this.configService.get('SUPPORT_EMAIL') || 'support@feedagg.com';
+
+    return this.emailProvider.sendEmail({
+      from: fromEmail,
+      to: userName ? { email: userEmail, name: userName } : userEmail,
+      subject: 'Confirm Your Email Address - FeedAgg',
+      html: this.emailTemplateService.processTemplate(
+        EmailTemplateType.EMAIL_CONFIRMATION,
+        {
+          userName: userName || 'there',
+          confirmationUrl,
+          supportEmail,
+        },
+      ),
+    });
+  }
+
+  /**
    * Sends a password reset email
    */
   async sendPasswordResetEmail(
