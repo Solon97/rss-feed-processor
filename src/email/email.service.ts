@@ -47,7 +47,7 @@ export class EmailService {
   /**
    * Sends an email confirmation email to verify user's email address
    */
-  async sendEmailConfirmationEmail(
+  async sendConfirmationEmail(
     userEmail: string,
     confirmationUrl: string,
     userName?: string,

@@ -13,6 +13,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { QueueModule } from './queue/queue.module';
 import { StripeModule } from './stripe/stripe.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { SupabaseModule } from './supabase/supabase.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
     EmailModule,
     SubscriptionModule,
     StripeModule,
+    SupabaseModule,
   ],
   controllers: [AppController],
   providers: [

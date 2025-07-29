@@ -223,7 +223,7 @@ export class AuthService {
     name?: string,
   ): Promise<void> {
     try {
-      await this.emailService.sendEmailConfirmationEmail(
+      await this.emailService.sendConfirmationEmail(
         email,
         confirmationUrl,
         name,
