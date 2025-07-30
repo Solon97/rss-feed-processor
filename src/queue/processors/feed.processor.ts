@@ -9,8 +9,8 @@ import {
 } from '../interfaces/job.interface';
 
 @Injectable()
-export class FeedDefaultProcessor {
-  private readonly logger = new Logger(FeedDefaultProcessor.name);
+export class FeedProcessor {
+  private logger = new Logger(FeedProcessor.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -127,6 +127,33 @@ export class FeedDefaultProcessor {
     } catch (error) {
       this.logger.error(
         `Failed to process feed ${feedId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  async processNewFeed(
+    job: Message<FeedProcessingJobData>,
+  ): Promise<FeedItemProcessingResult> {
+    const { feedId } = job.data;
+
+    this.logger.log(
+      `Processing new feed ${feedId} with high priority - Job ${job.id}`,
+    );
+
+    try {
+      // Use the same processing logic as regular feeds but with higher priority
+      const result = await this.processFeed(job);
+
+      this.logger.log(
+        `Completed priority processing for new feed ${feedId} - ${result.newItems} new items`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Failed to process new feed ${feedId}: ${error.message}`,
         error.stack,
       );
       throw error;

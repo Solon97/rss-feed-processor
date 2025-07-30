@@ -3,6 +3,19 @@ export interface FeedProcessingJobData {
   feedUrl: string;
 }
 
+export interface EmailJobData {
+  template: string;
+  variables: Record<string, any>;
+  to: string;
+  toName?: string;
+}
+
+export interface EmailJobResult {
+  emailId: string;
+  success: boolean;
+  message?: string;
+}
+
 export interface FeedItemProcessingResult {
   feedId: string;
   processedItems: number;
@@ -24,4 +37,10 @@ export enum JobTypes {
 export interface Message<T> {
   id: string;
   data: T;
+}
+
+export interface Job<T> {
+  jobType?: JobTypes;
+  jobData: T;
+  jobId: string;
 }

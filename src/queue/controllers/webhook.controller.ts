@@ -9,13 +9,15 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Receiver } from '@upstash/qstash';
 import {
+  EmailJobData,
   FeedItemProcessingResult,
   FeedProcessingJobData,
-  Message,
+  Job,
   JobTypes,
+  Message,
 } from '../interfaces/job.interface';
-import { FeedPriorityProcessor } from '../processors/feed-priority.processor';
-import { FeedDefaultProcessor } from '../processors/feed-default.processor';
+import { EmailProcessor } from '../processors/email.processor';
+import { FeedProcessor } from '../processors/feed.processor';
 
 @Controller('webhook')
 export class WebhookController {
@@ -24,8 +26,8 @@ export class WebhookController {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly feedDefaultProcessor: FeedDefaultProcessor,
-    private readonly feedPriorityProcessor: FeedPriorityProcessor,
+    private readonly feedProcessor: FeedProcessor,
+    private readonly emailProcessor: EmailProcessor,
   ) {
     this.receiver = new Receiver({
       currentSigningKey: this.configService.get<string>(
@@ -36,29 +38,13 @@ export class WebhookController {
   }
 
   @Post('process')
-  async processJob(
+  async processFeed(
     @Headers('upstash-signature') signature: string,
     @Body() body: any,
   ) {
     try {
-      if (process.env.NODE_ENV === 'production') {
-        // Verify the signature to ensure the request is from QStash
-        const isValid = await this.receiver.verify({
-          signature,
-          body: JSON.stringify(body),
-        });
-
-        if (!isValid) {
-          this.logger.error('Invalid signature from QStash webhook');
-          throw new BadRequestException('Invalid signature');
-        }
-      }
-
-      const { jobType, jobData, jobId } = body as {
-        jobType: JobTypes;
-        jobData: FeedProcessingJobData;
-        jobId: string;
-      };
+      const { jobType, jobData, jobId } =
+        await this.parseBody<FeedProcessingJobData>(signature, body);
 
       this.logger.log(
         `Processing feed ${jobData?.feedUrl} of job type ${jobType}`,
@@ -74,10 +60,10 @@ export class WebhookController {
 
       switch (jobType) {
         case JobTypes.PROCESS_FEED:
-          result = await this.feedDefaultProcessor.processFeed(job);
+          result = await this.feedProcessor.processFeed(job);
           break;
         case JobTypes.PROCESS_NEW_FEED:
-          result = await this.feedPriorityProcessor.processNewFeed(job);
+          result = await this.feedProcessor.processNewFeed(job);
           break;
         default:
           throw new BadRequestException(`Unknown job type: ${jobType}`);
@@ -92,7 +78,52 @@ export class WebhookController {
         `Failed to process QStash job: ${error.message}`,
         error.stack,
       );
-      throw error;
+      return { success: false, message: error.message };
     }
+  }
+
+  @Post('email')
+  async processEmail(
+    @Headers('upstash-signature') signature: string,
+    @Body() body: any,
+  ) {
+    try {
+      const { jobData } = await this.parseBody<EmailJobData>(signature, body);
+
+      this.logger.log(
+        `Processing email with template ${jobData.template} for ${jobData.to}`,
+      );
+
+      const job: Message<EmailJobData> = {
+        data: jobData,
+        id: `${jobData.template}-${jobData.to}-${Date.now()}`,
+      };
+
+      const result = await this.emailProcessor.processEmailJob(job);
+
+      this.logger.log(`Successfully processed email job for ${jobData.to}`);
+      return { success: true, result };
+    } catch (error) {
+      this.logger.error(
+        `Failed to process email job: ${error.message}`,
+        error.stack,
+      );
+      return { success: false, message: error.message };
+    }
+  }
+
+  private async parseBody<T>(signature: string, body: any): Promise<Job<T>> {
+    if (process.env.NODE_ENV === 'production') {
+      const isValid = await this.receiver.verify({
+        signature,
+        body: JSON.stringify(body),
+      });
+
+      if (!isValid) {
+        throw new BadRequestException('Invalid signature for webhook request');
+      }
+    }
+
+    return body as Job<T>;
   }
 }
