@@ -28,7 +28,7 @@ export class WebhookController {
   @Post()
   @HttpCode(HttpStatus.OK)
   async handleWebhook(
-    @Req() request: any, // Using any to access raw body properties
+    @Req() request: any,
     @Headers('stripe-signature') signature: string,
   ) {
     console.log('ping - webhook received');
