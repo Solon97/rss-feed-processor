@@ -31,7 +31,6 @@ export class WebhookController {
     @Req() request: any,
     @Headers('stripe-signature') signature: string,
   ) {
-    console.log('ping - webhook received');
     const endpointSecret = this.configService.get<string>(
       'STRIPE_WEBHOOK_SECRET',
     );

@@ -1,10 +1,12 @@
+import { EmailTemplateType } from '@/email/templates';
+
 export interface FeedProcessingJobData {
   feedId: string;
   feedUrl: string;
 }
 
 export interface EmailJobData {
-  template: string;
+  template: EmailTemplateType;
   variables: Record<string, any>;
   to: string;
   toName?: string;

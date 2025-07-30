@@ -40,7 +40,7 @@ export class WebhookService {
           break;
 
         case 'invoice.payment_succeeded':
-        case 'invoice.paid': // Novo evento que substitui invoice.payment_succeeded
+        case 'invoice.paid':
           this.logger.log(`Processing webhook event: ${event.type}`, {
             eventId: event.id,
           });

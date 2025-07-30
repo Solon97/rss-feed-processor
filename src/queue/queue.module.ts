@@ -9,6 +9,7 @@ import { QueueController } from './controllers/queue.controller';
 import { WebhookController } from './controllers/webhook.controller';
 import { EmailProcessor } from './processors/email.processor';
 import { FeedProcessor } from './processors/feed.processor';
+import { EmailQueueService } from './services/email-queue.service';
 import { FeedQueueService } from './services/feed-queue.service';
 
 @Module({
@@ -21,7 +22,12 @@ import { FeedQueueService } from './services/feed-queue.service';
     forwardRef(() => FeedProcessingModule),
   ],
   controllers: [QueueController, WebhookController],
-  providers: [FeedQueueService, FeedProcessor, EmailProcessor],
-  exports: [FeedQueueService],
+  providers: [
+    FeedQueueService,
+    EmailQueueService,
+    FeedProcessor,
+    EmailProcessor,
+  ],
+  exports: [FeedQueueService, EmailQueueService],
 })
 export class QueueModule {}
