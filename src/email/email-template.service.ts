@@ -22,13 +22,7 @@ export class EmailTemplateService {
   private readonly templatesPath: string;
   private readonly defaultVariables: TemplateVariables;
   constructor(private readonly configService: ConfigService) {
-    this.templatesPath = path.join(
-      process.cwd(),
-      'src',
-      'email',
-      'templates',
-      'html',
-    );
+    this.templatesPath = path.join('.', 'src', 'email', 'templates', 'html');
     this.defaultVariables = this.getDefaultTemplateVariables();
   }
 
@@ -46,6 +40,8 @@ export class EmailTemplateService {
         this.templatesPath,
         `${templateName}.html`,
       );
+
+      console.log(`Processing template: ${templatePath}`);
       let template = fs.readFileSync(templatePath, 'utf-8');
 
       // Replace template variables
