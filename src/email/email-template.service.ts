@@ -22,7 +22,11 @@ export class EmailTemplateService {
   private readonly templatesPath: string;
   private readonly defaultVariables: TemplateVariables;
   constructor(private readonly configService: ConfigService) {
-    this.templatesPath = path.join('.', 'src', 'email', 'templates', 'html');
+    const isProduction = process.env.NODE_ENV === 'production';
+    this.templatesPath = isProduction
+      ? path.join(process.cwd(), 'dist', 'email', 'templates', 'html')
+      : path.join(process.cwd(), 'src', 'email', 'templates', 'html');
+
     this.defaultVariables = this.getDefaultTemplateVariables();
   }
 
@@ -42,6 +46,12 @@ export class EmailTemplateService {
       );
 
       console.log(`Processing template: ${templatePath}`);
+      console.log(`Template exists: ${fs.existsSync(templatePath)}`);
+
+      if (!fs.existsSync(templatePath)) {
+        throw new Error(`Template file not found: ${templatePath}`);
+      }
+
       let template = fs.readFileSync(templatePath, 'utf-8');
 
       // Replace template variables
@@ -52,6 +62,11 @@ export class EmailTemplateService {
 
       return template;
     } catch (error) {
+      console.error(`Template processing failed:`, {
+        templateName,
+        templatesPath: this.templatesPath,
+        error: error.message,
+      });
       throw new Error(
         `Failed to process template ${templateName}: ${error.message}`,
       );

@@ -4,7 +4,13 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "webpack": true
+    "webpack": true,
+    "assets": [
+      {
+        "include": "email/templates/**/*.html",
+        "outDir": "dist"
+      }
+    ]
   },
   "projects": {
     "abstract-stripe": {
