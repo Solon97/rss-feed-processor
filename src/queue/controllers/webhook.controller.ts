@@ -43,6 +43,7 @@ export class WebhookController {
     @Body() body: any,
   ) {
     try {
+      this.logger.log(`Processing feed`);
       const { jobType, jobData, jobId } =
         await this.parseBody<FeedProcessingJobData>(signature, body);
 
@@ -88,6 +89,7 @@ export class WebhookController {
     @Body() body: any,
   ) {
     try {
+      this.logger.log(`Processing email`);
       const { jobData } = await this.parseBody<EmailJobData>(signature, body);
 
       this.logger.log(
