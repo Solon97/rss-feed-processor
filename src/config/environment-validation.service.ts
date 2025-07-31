@@ -26,15 +26,9 @@ export class EnvironmentValidationService {
       enabled: true,
     },
     {
-      name: 'QStash',
-      description: 'Serviço de filas e webhooks',
-      requiredVars: [
-        'QSTASH_TOKEN',
-        'QSTASH_CURRENT_SIGNING_KEY',
-        'QSTASH_NEXT_SIGNING_KEY',
-        'WEBHOOK_BASE_URL',
-        'QSTASH_SCHEDULE_ID',
-      ],
+      name: 'PostgreSQL',
+      description: 'Banco de dados PostgreSQL e sistema de filas',
+      requiredVars: ['DATABASE_URL'],
       enabled: true,
     },
     {

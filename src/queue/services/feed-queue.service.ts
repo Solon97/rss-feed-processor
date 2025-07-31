@@ -1,52 +1,33 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Client } from '@upstash/qstash';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { FeedProcessingJobData, JobTypes } from '../interfaces/job.interface';
+import { QueueAdapter } from '../interfaces/queue-adapter.interface';
+import { JobTypes } from '../interfaces/job.interface';
 
 @Injectable()
 export class FeedQueueService {
   private readonly logger = new Logger(FeedQueueService.name);
-  private readonly qstashClient: Client;
   private readonly priorityQueueName = 'feed-processing-priority';
   private readonly defaultQueueName = 'feed-processing-default';
 
   constructor(
-    private readonly configService: ConfigService,
+    @Inject('QueueAdapter') private readonly queueAdapter: QueueAdapter,
     private readonly prisma: PrismaService,
-  ) {
-    this.qstashClient = new Client({
-      token: this.configService.get<string>('QSTASH_TOKEN'),
-    });
+  ) {}
+
+  /**
+   * Initialize the queue service
+   */
+  async initialize(): Promise<void> {
+    await this.queueAdapter.start();
+    await this.queueAdapter.createQueue(this.priorityQueueName);
+    await this.queueAdapter.createQueue(this.defaultQueueName);
   }
 
   /**
-   * Sends a job to a specific QStash queue
+   * Stop the queue service gracefully
    */
-  private async sendToQueue(
-    queueName: string,
-    jobType: JobTypes,
-    jobData: FeedProcessingJobData,
-    retries = 3,
-  ): Promise<void> {
-    const queue = this.qstashClient.queue({
-      queueName: queueName,
-    });
-
-    const url =
-      this.configService.get<string>('WEBHOOK_BASE_URL') + '/webhook/process';
-
-    const body = {
-      jobType,
-      jobData,
-      jobId: `${jobType}-${jobData.feedId}-${Date.now()}`,
-    };
-
-    await queue.enqueueJSON({
-      url,
-      body,
-      retries,
-    });
+  async stop(): Promise<void> {
+    await this.queueAdapter.stop();
   }
 
   /**
@@ -56,12 +37,13 @@ export class FeedQueueService {
     try {
       const queueName = this.defaultQueueName;
 
-      const jobData: FeedProcessingJobData = {
+      const jobData = {
         feedId,
         feedUrl,
+        jobType: JobTypes.PROCESS_FEED,
       };
 
-      await this.sendToQueue(queueName, JobTypes.PROCESS_FEED, jobData, 3);
+      await this.queueAdapter.addJob(queueName, jobData);
 
       this.logger.log(`Feed ${feedUrl} added to ${queueName} queue`);
     } catch (error) {
@@ -80,18 +62,14 @@ export class FeedQueueService {
     feedUrl: string,
   ): Promise<void> {
     try {
-      const jobData: FeedProcessingJobData = {
+      const jobData = {
         feedId,
         feedUrl,
+        jobType: JobTypes.PROCESS_NEW_FEED,
       };
 
       // Send to priority queue for immediate processing
-      await this.sendToQueue(
-        this.priorityQueueName,
-        JobTypes.PROCESS_NEW_FEED,
-        jobData,
-        3,
-      );
+      await this.queueAdapter.addJob(this.priorityQueueName, jobData);
 
       this.logger.log(
         `New feed ${feedId} added to priority queue for immediate processing`,

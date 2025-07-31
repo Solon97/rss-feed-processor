@@ -57,6 +57,7 @@
     "jsonwebtoken": "^9.0.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "pg-boss": "^10.3.2",
     "prisma": "^6.10.1",
     "reflect-metadata": "^0.2.0",
     "resend": "^4.7.0",

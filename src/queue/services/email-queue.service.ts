@@ -1,43 +1,49 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Client } from '@upstash/qstash';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { QueueAdapter } from '../interfaces/queue-adapter.interface';
 import { EmailJobData } from '../interfaces/job.interface';
 
 @Injectable()
 export class EmailQueueService {
   private readonly logger = new Logger(EmailQueueService.name);
-  private readonly qstashClient: Client;
-  private readonly emailQueueName = 'send-email';
+  private readonly emailQueueName = 'email-processing';
 
-  constructor(private readonly configService: ConfigService) {
-    this.qstashClient = new Client({
-      token: this.configService.get<string>('QSTASH_TOKEN'),
-    });
+  constructor(
+    @Inject('QueueAdapter') private readonly queueAdapter: QueueAdapter,
+  ) {}
+
+  /**
+   * Initialize the email queue service
+   */
+  async initialize(): Promise<void> {
+    await this.queueAdapter.createQueue(this.emailQueueName);
   }
 
   /**
-   * Sends an email job to the QStash queue
+   * Adds an email job to the queue
    */
-  async sendEmailToQueue(jobData: EmailJobData, retries = 3): Promise<void> {
-    this.logger.log(
-      `Sending email job to queue: ${jobData.template} for ${jobData.to}`,
-    );
-    const queue = this.qstashClient.queue({
-      queueName: this.emailQueueName,
-    });
+  async addEmailToQueue(emailData: EmailJobData): Promise<void> {
+    try {
+      const jobId = await this.queueAdapter.addJob(this.emailQueueName, {
+        template: emailData.template,
+        variables: emailData.variables,
+        to: emailData.to,
+        toName: emailData.toName,
+      });
 
-    const url =
-      this.configService.get<string>('WEBHOOK_BASE_URL') + '/webhook/email';
+      this.logger.log(
+        `Email job ${jobId} added to queue for ${emailData.to} with template ${emailData.template}`,
+      );
+    } catch (error) {
+      this.logger.error(`Failed to add email job to queue: ${error.message}`);
+      throw error;
+    }
+  }
 
-    const body = {
-      jobData,
-      jobId: `email-${jobData.template}-${Date.now()}`,
-    };
-
-    await queue.enqueueJSON({
-      url,
-      body,
-      retries,
-    });
+  /**
+   * Legacy method for backward compatibility
+   * @deprecated Use addEmailToQueue instead
+   */
+  async sendEmailToQueue(jobData: EmailJobData): Promise<void> {
+    return this.addEmailToQueue(jobData);
   }
 }
