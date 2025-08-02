@@ -5,6 +5,7 @@ import { AuthModule } from '../auth/auth.module';
 import { EmailModule } from '../email/email.module';
 import { FeedProcessingModule } from '../feed-processing/feed-processing.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { EmailWebhookController } from './controllers/webhook.controller';
 import { PgBossAdapter } from './adapters/pg-boss.adapter';
 import { EmailProcessor } from './processors/email.processor';
 import { FeedProcessor } from './processors/feed.processor';
@@ -22,6 +23,7 @@ import { WorkerService } from './services/worker.service';
     ScheduleModule.forRoot(),
     forwardRef(() => FeedProcessingModule),
   ],
+  controllers: [EmailWebhookController],
   providers: [
     {
       provide: 'QueueAdapter',
