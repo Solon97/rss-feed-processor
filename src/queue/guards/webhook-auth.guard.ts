@@ -31,9 +31,7 @@ export class WebhookAuthGuard implements CanActivate {
     }
 
     if (token !== validToken) {
-      this.logger.warn(
-        `Invalid webhook token attempt: ${token.substring(0, 8)}...`,
-      );
+      this.logger.warn(`Invalid webhook token attempt`);
       throw new UnauthorizedException('Invalid authorization token');
     }
 
