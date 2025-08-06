@@ -111,7 +111,9 @@ export class FeedService {
     feedId: string,
     isActive: boolean,
   ): Promise<void> {
-    await this.feedSubscription.canActivateNewFeed(userId);
+    if (isActive) {
+      await this.feedSubscription.canActivateNewFeed(userId);
+    }
     return this.userFeedManagement.updateUserFeedStatus(
       userId,
       feedId,
