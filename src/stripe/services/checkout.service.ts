@@ -135,6 +135,7 @@ export class CheckoutService {
           created_by: 'checkout_service',
           user_id: userId, // E no metadata da session
         },
+        currency: 'brl',
       });
 
       return session;
