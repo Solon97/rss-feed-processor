@@ -10,7 +10,6 @@ export class FeedSchedulerService {
 
   /**
    * Schedules all feeds for processing every 30 minutes
-   * This replaces the QStash scheduler functionality
    */
   @Cron(CronExpression.EVERY_30_MINUTES)
   async scheduleAllFeedsProcessing(): Promise<void> {

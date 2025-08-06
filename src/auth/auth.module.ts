@@ -6,7 +6,6 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { EmailModule } from '../email/email.module';
 import { AppAuthGuard } from './guards/auth.guard';
-import { QStashSchedulerGuard } from './guards/qstash-scheduler.guard';
 import { SupabaseJwtStrategy } from './strategies/supabase-jwt.strategy';
 
 @Module({
@@ -19,12 +18,7 @@ import { SupabaseJwtStrategy } from './strategies/supabase-jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [
-    SupabaseJwtStrategy,
-    AuthService,
-    AppAuthGuard,
-    QStashSchedulerGuard,
-  ],
-  exports: [AuthService, AppAuthGuard, QStashSchedulerGuard],
+  providers: [SupabaseJwtStrategy, AuthService, AppAuthGuard],
+  exports: [AuthService, AppAuthGuard],
 })
 export class AuthModule {}
