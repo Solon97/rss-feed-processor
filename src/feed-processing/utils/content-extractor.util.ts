@@ -203,10 +203,23 @@ export class ContentExtractorUtil {
         );
       }
 
-      // Process content to handle YouTube thumbnails and apply responsive styles
-      const processedContent = this.processContentMedia(article.content);
+      // Sanitize first paragraph embeds in HTML (minimal) – result is not used directly
+      // but helps when falling back from textContent to HTML-to-text extraction
+      const minimallySanitizedHtml = this.sanitizeFirstParagraphEmbeds(
+        article.content,
+      );
 
-      return processedContent;
+      // Use textContent when available; fallback to stripped HTML
+      const text = article.textContent?.trim()
+        ? article.textContent
+        : this.stripHtmlToText(minimallySanitizedHtml);
+
+      const summary = this.generateSummaryFromText(text, {
+        min: 250,
+        max: 400,
+      });
+
+      return summary;
     } catch (error) {
       if (
         error instanceof ContentNotFoundException ||
@@ -273,5 +286,304 @@ export class ContentExtractorUtil {
     } catch (error) {
       throw new ContentExtractionException(url, error.message);
     }
+  }
+
+  // =====================
+  // Text/Summary utilities
+  // =====================
+
+  /**
+   * Minimal sanitizer to remove embeds (iframe, img, figure) from the first paragraph only
+   * leaving the rest untouched. Used as a helper before text extraction.
+   */
+  private static sanitizeFirstParagraphEmbeds(html: string): string {
+    if (!html) return '';
+    try {
+      const dom = new JSDOM(html);
+      const doc = dom.window.document;
+      const firstP = doc.body.querySelector('p');
+      if (firstP) {
+        // Remove embed elements inside first paragraph
+        firstP
+          .querySelectorAll('iframe, img, figure')
+          .forEach((el) => el.remove());
+      }
+      return doc.body.innerHTML;
+    } catch {
+      return html;
+    }
+  }
+
+  /**
+   * Remove all HTML tags, decode entities and normalize whitespace
+   */
+  private static stripHtmlToText(html: string): string {
+    if (!html) return '';
+    try {
+      const dom = new JSDOM(`<body>${html}</body>`);
+      const text = dom.window.document.body.textContent || '';
+      return this.normalizeWhitespaces(text);
+    } catch {
+      // Fallback regex-based stripping
+      const txt = html
+        .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+      return this.normalizeWhitespaces(txt);
+    }
+  }
+
+  /**
+   * Normalize whitespaces, collapse spaces, trim, ensure capitalized start and
+   * avoid trailing connective words
+   */
+  private static normalizeWhitespaces(text: string): string {
+    if (!text) return '';
+    let t = text
+      .replace(/\r\n|\r/g, '\n')
+      .replace(/\t/g, ' ')
+      .replace(/\u00A0/g, ' ')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '') // zero-width
+      .replace(/ +/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    if (t.length > 0) {
+      t = t[0].toUpperCase() + t.slice(1);
+    }
+
+    // Remove trailing connectors if present
+    t = t.replace(/(?:\s+(?:e|ou|mas|porém|contudo|que|de))[,;:]?\s*$/i, '');
+    return t;
+  }
+
+  /**
+   * Split into paragraphs based on double newlines; filter empty and very short entries (<40 chars)
+   */
+  private static splitIntoParagraphs(text: string): string[] {
+    if (!text) return [];
+    const raw = text
+      .replace(/\r\n|\r/g, '\n')
+      .split(/\n\s*\n+/)
+      .map((p) => this.normalizeWhitespaces(p))
+      .filter((p) => p.length > 0);
+
+    const filtered = raw.filter((p) => p.length >= 40);
+    return filtered.length > 0 ? filtered : raw;
+  }
+
+  /**
+   * Remove boilerplate lines and CTAs from the text
+   */
+  private static removeBoilerplateAndCtas(text: string): string {
+    if (!text) return '';
+    const lines = text
+      .replace(/\r\n|\r/g, '\n')
+      .split(/\n+/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
+      .filter((l) => {
+        const lower = l.toLowerCase();
+        // pure URLs
+        if (/^https?:\/\//i.test(lower)) return false;
+        // social / CTA / boilerplate / comments / cookie / paywall
+        const patterns = [
+          'assine',
+          'assinante',
+          'assinantes',
+          'subscribe',
+          'cookies',
+          'compartilhe',
+          'compartilhar',
+          'siga',
+          'siga-nos',
+          'comentários',
+          'comentarios',
+          'rodapé',
+          'rodape',
+          'leia mais',
+          'leia mais no',
+          'para assinantes',
+          'conteúdo exclusivo',
+          'conteudo exclusivo',
+          'política de privacidade',
+          'politica de privacidade',
+        ];
+        if (patterns.some((p) => lower.includes(p))) return false;
+        // generic social mentions
+        if (
+          /facebook|twitter|instagram|tiktok|youtube/.test(lower) &&
+          /(siga|compartilhe|seguir|inscreva-se|inscreva|assista|veja)/.test(
+            lower,
+          )
+        )
+          return false;
+        return true;
+      });
+    return lines.join('\n');
+  }
+
+  /**
+   * Concatenate paragraphs until reaching the minimum length, preserving order and spacing
+   */
+  private static buildBaseSummary(paragraphs: string[], min = 250): string {
+    let acc = '';
+    for (const p of paragraphs) {
+      if (acc.length >= min) break;
+      acc = acc ? `${acc}\n\n${p}` : p;
+    }
+    return acc;
+  }
+
+  /**
+   * Clamp text to sentence boundary before max; if none, cut at last word and add ellipsis
+   */
+  private static clampToSentenceBoundary(
+    text: string,
+    max = 400,
+  ): { text: string; truncated: boolean } {
+    const t = this.normalizeWhitespaces(text);
+    if (t.length <= max) return { text: t, truncated: false };
+
+    // Find last sentence delimiter before max
+    const delimiters = /[\.!?;]/g;
+    let lastGood = -1;
+    let match: RegExpExecArray | null;
+    while ((match = delimiters.exec(t)) !== null) {
+      if (match.index < max)
+        lastGood = match.index + 1; // include delimiter
+      else break;
+    }
+
+    let out: string;
+    if (lastGood > 50) {
+      out = t.slice(0, lastGood).trim();
+    } else {
+      // fallback: cut at last space before max
+      const cut = t.lastIndexOf(' ', max - 1);
+      out = (cut > 0 ? t.slice(0, cut) : t.slice(0, max)).trim();
+    }
+    return { text: out, truncated: true };
+  }
+
+  /**
+   * If first block is a list and the following text is short, merge first two items into one sentence
+   */
+  private static coalesceInitialListIfPresent(paragraphs: string[]): string[] {
+    if (!paragraphs || paragraphs.length === 0) return paragraphs;
+    const first = paragraphs[0];
+    const lines = first.split(/\n+/);
+    const isListLine = (s: string) =>
+      /^(?:[-•\u2022\u25CF]|\d+\.|\*)\s+/.test(s.trim());
+    const listItems = lines.filter((l) => isListLine(l));
+    if (listItems.length >= 2) {
+      const nextText = paragraphs[1] || '';
+      if (nextText.length < 120) {
+        const cleanItem = (s: string) =>
+          s.replace(/^(?:[-•\u2022\u25CF]|\d+\.|\*)\s+/, '').trim();
+        const sentence = `${cleanItem(listItems[0])}; ${cleanItem(listItems[1])}.`;
+        const rest = lines
+          .filter((l) => !isListLine(l))
+          .join(' ')
+          .trim();
+        const mergedFirst = this.normalizeWhitespaces(
+          [sentence, rest].filter(Boolean).join(' '),
+        );
+        const newParas = [mergedFirst, ...paragraphs.slice(1)];
+        return newParas;
+      }
+    }
+    return paragraphs;
+  }
+
+  /**
+   * Remove or replace early embed references (YouTube/Twitter) near the start of the text
+   */
+  private static dropEarlyEmbedMentions(paragraphs: string[]): {
+    paragraphs: string[];
+    hadEmbed: boolean;
+  } {
+    if (!paragraphs || paragraphs.length === 0)
+      return { paragraphs, hadEmbed: false };
+    const embedRe =
+      /(youtube|twitter|x\.com|tiktok|vídeo|video|trailer|player|assista|veja)/i;
+    let had = false;
+    const out: string[] = [];
+    for (let i = 0; i < paragraphs.length; i++) {
+      const p = paragraphs[i];
+      if (i <= 1 && embedRe.test(p) && p.length < 220) {
+        // drop it
+        had = true;
+        continue;
+      }
+      out.push(p);
+    }
+    return { paragraphs: out, hadEmbed: had };
+  }
+
+  /**
+   * Build a concise summary from raw text
+   */
+  private static generateSummaryFromText(
+    rawText: string,
+    opts?: { min?: number; max?: number },
+  ): string {
+    const min = opts?.min ?? 250;
+    const max = opts?.max ?? 400;
+
+    const clean0 = this.removeBoilerplateAndCtas(rawText);
+    const clean = this.normalizeWhitespaces(clean0);
+
+    let paragraphs = this.splitIntoParagraphs(clean);
+    if (paragraphs.length === 0) {
+      return '';
+    }
+
+    paragraphs = this.coalesceInitialListIfPresent(paragraphs);
+    const { paragraphs: noEmbeds, hadEmbed } =
+      this.dropEarlyEmbedMentions(paragraphs);
+    paragraphs = noEmbeds;
+
+    // Remove paywall paragraphs
+    paragraphs = paragraphs.filter(
+      (p) =>
+        !/(para assinantes|conteúdo exclusivo|conteudo exclusivo)/i.test(p),
+    );
+
+    if (paragraphs.length === 0) return '';
+
+    let base = this.buildBaseSummary(paragraphs, min);
+    let { text: clamped, truncated } = this.clampToSentenceBoundary(base, max);
+
+    // If too short and we have more paragraphs, try to include the next and clamp again
+    let idx = 1;
+    while (clamped.length < min && idx < paragraphs.length) {
+      base = this.normalizeWhitespaces(`${base}\n\n${paragraphs[idx++]}`);
+      const res = this.clampToSentenceBoundary(base, max);
+      clamped = res.text;
+      truncated = res.truncated;
+      if (clamped.length >= min) break;
+    }
+
+    // Optionally add a short embed mention if we dropped one and text is still very short
+    if (hadEmbed && clamped.length < min && paragraphs.length <= 2) {
+      const withMention = `${clamped} Veja o trailer no artigo original.`;
+      const res = this.clampToSentenceBoundary(withMention, max);
+      clamped = res.text;
+      truncated = res.truncated || withMention.length > clamped.length;
+    }
+
+    // Add ellipsis when truncated OR when shorter than the minimum target,
+    // to encourage clicking the original article.
+    if (truncated || clamped.length < min) {
+      return `${clamped} [...]`;
+    }
+    return clamped;
   }
 }
