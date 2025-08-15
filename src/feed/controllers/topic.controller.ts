@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   UseInterceptors,
   UsePipes,
 } from '@nestjs/common';
@@ -64,7 +65,8 @@ export class TopicController {
   @Get()
   async getUserTopics(
     @CurrentUser() user: UserInfo,
+    @Query('has_active_feeds') hasActiveFeeds: boolean,
   ): Promise<TopicResponseDto[]> {
-    return this.topicManagementService.getUserTopics(user.id);
+    return this.topicManagementService.getUserTopics(user.id, hasActiveFeeds);
   }
 }

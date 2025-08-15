@@ -74,11 +74,24 @@ export class TopicManagementService {
   /**
    * Gets all topics for a specific user
    */
-  async getUserTopics(userId: string): Promise<TopicResponseDto[]> {
+  async getUserTopics(
+    userId: string,
+    hasActiveFeeds: boolean,
+  ): Promise<TopicResponseDto[]> {
     try {
       const topics = await this.prisma.topics.findMany({
-        where: { user_id: userId },
+        where: {
+          user_id: userId,
+          ...(hasActiveFeeds && {
+            user_feeds: {
+              some: { is_active: true },
+            },
+          }),
+        },
         orderBy: { created_at: 'desc' },
+        include: {
+          user_feeds: true,
+        },
       });
 
       return topics.map((topic) => ({
