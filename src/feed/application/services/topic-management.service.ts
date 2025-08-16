@@ -17,6 +17,15 @@ export class TopicNotFoundException extends Error {
   }
 }
 
+export class TopicHasActiveFeedsException extends Error {
+  constructor(topicName: string, feedCount: number) {
+    super(
+      `Não é possível excluir o tópico '${topicName}' pois ele possui ${feedCount} feed(s) relacionado(s). Remova os feeds primeiro.`,
+    );
+    this.name = 'TopicHasActiveFeedsException';
+  }
+}
+
 /**
  * Service for Topic Management
  * Handles CRUD operations for user topics
@@ -127,6 +136,51 @@ export class TopicManagementService {
         'validação de propriedade do tópico',
         error.message,
       );
+    }
+  }
+
+  /**
+   * Deletes a topic after validating it has no related feeds
+   */
+  async deleteTopic(userId: string, topicId: string): Promise<void> {
+    try {
+      // First, find the topic and verify ownership
+      const topic = await this.prisma.topics.findFirst({
+        where: {
+          id: topicId,
+          user_id: userId,
+        },
+        include: {
+          user_feeds: true,
+        },
+      });
+
+      if (!topic) {
+        throw new TopicNotFoundException(topicId);
+      }
+
+      // Check if topic has any related feeds
+      if (topic.user_feeds.length > 0) {
+        throw new TopicHasActiveFeedsException(
+          topic.name,
+          topic.user_feeds.length,
+        );
+      }
+
+      // Delete the topic
+      await this.prisma.topics.delete({
+        where: {
+          id: topicId,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof TopicNotFoundException ||
+        error instanceof TopicHasActiveFeedsException
+      ) {
+        throw error;
+      }
+      throw new FeedProcessingException('exclusão de tópico', error.message);
     }
   }
 }

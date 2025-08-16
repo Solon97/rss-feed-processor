@@ -2,9 +2,12 @@ import {
   Body,
   ConflictException,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
+  Param,
   Post,
   Query,
   UseInterceptors,
@@ -19,7 +22,9 @@ import { ErrorLoggingInterceptor } from '../../common/interceptors/error-logging
 import { CustomValidationPipe } from '../../common/pipes/custom-validation.pipe';
 import {
   TopicAlreadyExistsException,
+  TopicHasActiveFeedsException,
   TopicManagementService,
+  TopicNotFoundException,
 } from '../application/services/topic-management.service';
 import { CreateTopicDto, TopicResponseDto } from '../dto/topic.dto';
 
@@ -68,5 +73,30 @@ export class TopicController {
     @Query('has_active_feeds') hasActiveFeeds: boolean,
   ): Promise<TopicResponseDto[]> {
     return this.topicManagementService.getUserTopics(user.id, hasActiveFeeds);
+  }
+
+  /**
+   * Exclui um tópico do usuário
+   * DELETE /topics/:id
+   * Requer autenticação JWT do Supabase
+   * Valida se o tópico não possui feeds relacionados antes da exclusão
+   */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteTopic(
+    @Param('id') topicId: string,
+    @CurrentUser() user: UserInfo,
+  ): Promise<void> {
+    try {
+      await this.topicManagementService.deleteTopic(user.id, topicId);
+    } catch (error) {
+      if (error instanceof TopicNotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      if (error instanceof TopicHasActiveFeedsException) {
+        throw new ConflictException(error.message);
+      }
+      throw error;
+    }
   }
 }
