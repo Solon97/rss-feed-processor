@@ -34,7 +34,7 @@ export class EmailService {
     return this.emailProvider.sendEmail({
       from: fromEmail,
       to: userName ? { email: userEmail, name: userName } : userEmail,
-      subject: 'Welcome to FeedAgg!',
+      subject: 'Bem-vindo ao FeedAgg 🚀',
       html: this.emailTemplateService.processTemplate(
         EmailTemplateType.WELCOME,
         {
