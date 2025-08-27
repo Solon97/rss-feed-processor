@@ -106,8 +106,8 @@ model stripe_customers {
 model user_subscriptions {
     id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
     user_id                String    @db.Uuid
-    stripe_subscription_id String    @unique
-    stripe_customer_id     String
+    stripe_subscription_id String?   @unique
+    stripe_customer_id     String?
     status                 String    @default("active")
     current_period_start   DateTime  @db.Timestamptz(6)
     current_period_end     DateTime  @db.Timestamptz(6)

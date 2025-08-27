@@ -3,6 +3,7 @@ import {
   Logger,
   Inject,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import Stripe from 'stripe';
@@ -35,24 +36,44 @@ export class CheckoutService {
     });
 
     try {
-      // Step 1: Get or create Stripe customer
+      // Step 0: Check existing subscription/trial
+      const now = new Date();
+      const existing = await this.getExistingSubscription(user.id);
+
+      if (!existing) {
+        const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+        await this.prisma.user_subscriptions.create({
+          data: {
+            user_id: user.id,
+            stripe_subscription_id: null,
+            stripe_customer_id: null,
+            status: 'trialing',
+            current_period_start: now,
+            current_period_end: trialEnd,
+          },
+        });
+
+        this.logger.log(`Created trial subscription for user ${user.id}`, {
+          trialEndsAt: trialEnd.toISOString(),
+        });
+
+        return {
+          isTrial: true,
+        };
+      }
+
+      // Create or get customer now (only when moving to paid)
       const customerData = await this.customerService.getOrCreateCustomer(user);
-
-      // Step 2: Check for existing active subscription
-      await this.validateExistingSubscription(user.id);
-
-      // Step 3: Create checkout session
       const session = await this.createCheckoutSession(
         customerData.stripeCustomerId,
         createCheckoutDto,
-        user.id, // Passar o user.id
+        user.id,
       );
 
-      this.logger.log(`Checkout session created successfully`, {
+      this.logger.log(`Checkout session created`, {
         userId: user.id,
         sessionId: session.id,
         customerId: customerData.stripeCustomerId,
-        checkoutUrl: session.url!,
       });
 
       return {
@@ -60,6 +81,7 @@ export class CheckoutService {
         checkoutUrl: session.url!,
         customerId: customerData.stripeCustomerId,
         expiresAt: session.expires_at,
+        isTrial: false,
       };
     } catch (error) {
       this.logger.error(
@@ -79,28 +101,27 @@ export class CheckoutService {
   /**
    * Validate if user already has an active subscription
    */
-  private async validateExistingSubscription(userId: string): Promise<void> {
+  private async getExistingSubscription(userId: string) {
     const existingSubscription = await this.prisma.user_subscriptions.findFirst(
       {
         where: {
           user_id: userId,
-          status: {
-            in: ['active', 'trialing'],
-          },
         },
       },
     );
 
-    if (existingSubscription) {
+    if (existingSubscription && existingSubscription.status === 'active') {
       this.logger.warn(`User ${userId} already has an active subscription`, {
         subscriptionId: existingSubscription.stripe_subscription_id,
         status: existingSubscription.status,
       });
 
-      throw new BadRequestException('User already has an active subscription');
+      throw new ConflictException('User already has an active subscription');
     }
+
+    return existingSubscription;
   }
-  s;
+
   /**
    * Create Stripe checkout session
    */

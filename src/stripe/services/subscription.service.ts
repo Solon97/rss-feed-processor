@@ -184,14 +184,35 @@ export class SubscriptionService {
    */
   async getUserSubscription(userId: string) {
     try {
-      return await this.prisma.user_subscriptions.findFirst({
+      const now = new Date();
+      const subscription = await this.prisma.user_subscriptions.findFirst({
         where: {
           user_id: userId,
           status: {
             in: ['active', 'trialing'],
           },
         },
+        orderBy: { created_at: 'desc' },
       });
+
+      if (!subscription) return null;
+
+      // If trialing and expired -> mark expired_trial
+      if (
+        subscription.status === 'trialing' &&
+        subscription.current_period_end.getTime() <= now.getTime()
+      ) {
+        await this.prisma.user_subscriptions.update({
+          where: { id: subscription.id },
+          data: { status: 'expired_trial', updated_at: now },
+        });
+        this.logger.log(`Expired trial updated for user ${userId}`, {
+          subscriptionId: subscription.id,
+        });
+        return null; // No active subscription anymore
+      }
+
+      return subscription;
     } catch (error) {
       this.logger.error(
         `Error fetching subscription for user ${userId}`,
