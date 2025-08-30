@@ -39,23 +39,6 @@ export class WebhookService {
           );
           break;
 
-        case 'invoice.payment_succeeded':
-        case 'invoice.paid':
-          this.logger.log(`Processing webhook event: ${event.type}`, {
-            eventId: event.id,
-          });
-          await this.handlePaymentSucceeded(
-            event.data.object as Stripe.Invoice,
-          );
-          break;
-
-        case 'invoice.payment_failed':
-          this.logger.log(`Processing webhook event: ${event.type}`, {
-            eventId: event.id,
-          });
-          await this.handlePaymentFailed(event.data.object as Stripe.Invoice);
-          break;
-
         case 'checkout.session.completed':
           this.logger.log(`Processing webhook event: ${event.type}`, {
             eventId: event.id,
@@ -63,14 +46,6 @@ export class WebhookService {
           await this.handleCheckoutSessionCompleted(
             event.data.object as Stripe.Checkout.Session,
           );
-          break;
-
-        // Adiciona suporte para invoice_payment.paid (novo formato do Stripe)
-        case 'invoice_payment.paid':
-          this.logger.log(`Processing webhook event: ${event.type}`, {
-            eventId: event.id,
-          });
-          await this.handleInvoicePaymentPaid(event.data.object as any);
           break;
 
         default:
