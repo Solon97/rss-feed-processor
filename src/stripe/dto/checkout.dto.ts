@@ -26,11 +26,10 @@ export class ResponseDto<T> {
 }
 
 export class CheckoutSessionResponseDto {
-  sessionId?: string; // Optional for trial
-  checkoutUrl?: string; // Optional for trial
-  customerId?: string; // Optional for trial (only after Stripe customer exists)
-  expiresAt?: number; // Unix timestamp
-  isTrial?: boolean; // Indicates this is a local trial record
+  sessionId: string;
+  checkoutUrl: string;
+  customerId: string;
+  expiresAt: number;
 }
 
 export class PortalSessionDto {
