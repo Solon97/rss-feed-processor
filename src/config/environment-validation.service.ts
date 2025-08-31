@@ -55,6 +55,12 @@ export class EnvironmentValidationService {
       optionalVars: ['FRONTEND_URL'],
       enabled: true,
     },
+    {
+      name: 'Cron System',
+      description: 'Agendamento de tarefas',
+      requiredVars: ['FEED_PROCESSING_CRON', 'QUEUE_HEALTH_CHECK_CRON'],
+      enabled: true,
+    },
   ];
 
   constructor(private readonly configService: ConfigService) {}
@@ -87,14 +93,11 @@ export class EnvironmentValidationService {
       }
     }
 
-    this.logValidationResults(validationResults, allValid);
+    this.logValidationResults(validationResults);
 
     if (!allValid) {
       this.logger.error(
         '❌ Algumas variáveis de ambiente obrigatórias não estão configuradas!',
-      );
-      this.logger.error(
-        '📋 Consulte o arquivo .env.example para ver todas as configurações necessárias.',
       );
     } else {
       this.logger.log(
@@ -139,7 +142,6 @@ export class EnvironmentValidationService {
       missingVars: string[];
       presentVars: string[];
     }>,
-    allValid: boolean,
   ): void {
     this.logger.log('📊 Resultados da validação por serviço:');
 
@@ -158,14 +160,6 @@ export class EnvironmentValidationService {
       if (result.missingVars.length > 0) {
         this.logger.warn(`   ✗ Faltando: ${result.missingVars.join(', ')}`);
       }
-    }
-
-    if (allValid) {
-      this.logger.log('\n🎉 Sistema pronto para uso!');
-    } else {
-      this.logger.error(
-        '\n⚠️  Configure as variáveis faltantes antes de continuar.',
-      );
     }
   }
 

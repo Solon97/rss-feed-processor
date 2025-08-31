@@ -1,47 +1,6 @@
 version: '3.8'
 
 services:
-  # Redis - Sistema de filas para BullMQ
-  redis:
-    image: redis:7-alpine
-    container_name: rss-feed-redis
-    restart: unless-stopped
-    ports:
-      - '6379:6379'
-    volumes:
-      - redis_data:/data
-      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
-    command: redis-server /usr/local/etc/redis/redis.conf
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-    networks:
-      - rss_network
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Redis Commander - Interface web para monitorar Redis (opcional)
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: rss-feed-redis-commander
-    restart: unless-stopped
-    ports:
-      - '8081:8081'
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      - HTTP_USER=${REDIS_COMMANDER_USER:-admin}
-      - HTTP_PASSWORD=${REDIS_COMMANDER_PASSWORD:-admin}
-    networks:
-      - rss_network
-    depends_on:
-      redis:
-        condition: service_healthy
-    profiles:
-      - tools
-
   # Aplicação RSS Feed Processor
   app:
     build:
@@ -56,7 +15,6 @@ services:
       - NODE_ENV=${NODE_ENV:-development}
       - PORT=${PORT:-3000}
       - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
     volumes:
@@ -65,15 +23,10 @@ services:
       - logs:/app/logs
     networks:
       - rss_network
-    depends_on:
-      redis:
-        condition: service_healthy
     profiles:
       - app
 
 volumes:
-  redis_data:
-    driver: local
   logs:
     driver: local
 
