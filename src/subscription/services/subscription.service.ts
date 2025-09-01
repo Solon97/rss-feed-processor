@@ -60,7 +60,9 @@ export class SubscriptionService {
       },
       where: {
         user_id: userId,
-        status: 'active',
+        status: {
+          in: ['active', 'trialing'],
+        },
         current_period_end: {
           gte: new Date(), // Verifica se ainda não expirou
         },
