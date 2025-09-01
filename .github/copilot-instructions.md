@@ -68,8 +68,10 @@ pnpm run start:dev
 ## Error Handling Conventions
 
 - **Global filter**: `src/common/filters/`
+- **Global interceptors**: `src/common/interceptors/` (request logging, error logging)
 - **Response format**: `{ error, message, details }`
 - **Logging**: `private readonly logger = new Logger(ServiceName.name)`
+- **Request Logging**: All HTTP requests are automatically logged with duration, status, and sanitized payload
 
 ---
 
@@ -138,6 +140,7 @@ pnpm run start:dev
 
 - **2025-08-31**: Added **Changelog section** and explicit Copilot instructions for maintaining this document.
 - **2025-08-31**: **Refactored cron jobs to use environment variables**: Replaced hardcoded `CronExpression.EVERY_30_MINUTES` and `CronExpression.EVERY_5_MINUTES` with dynamic cron expressions from environment variables (`FEED_PROCESSING_CRON`, `QUEUE_HEALTH_CHECK_CRON`). Updated `FeedSchedulerService` to use `SchedulerRegistry` with `OnModuleInit` pattern for proper dynamic cron setup. Added validation for cron environment variables in `EnvironmentValidationService`.
+- **2025-08-31**: **Added global request logging interceptor**: Created `RequestLoggingInterceptor` in `src/common/interceptors/` to log all HTTP requests with method, URL, duration, status code, and sanitized request body. Sensitive fields (password, token, secret, key, authorization) are automatically redacted. Registered globally in `app.module.ts`.
 
 ---
 

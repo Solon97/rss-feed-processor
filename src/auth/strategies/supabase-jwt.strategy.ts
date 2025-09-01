@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import * as jwksRsa from 'jwks-rsa';
 import { AuthService, SupabaseJwtPayload } from '../auth.service';
 
 @Injectable()
@@ -13,40 +14,28 @@ export class SupabaseJwtStrategy extends PassportStrategy(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {
-    const secret = configService.get<string>('SUPABASE_JWT_SECRET');
-
-    if (!secret) {
-      throw new Error('SUPABASE_JWT_SECRET não está configurada');
-    }
+    const jwksUri = configService.get<string>('SUPABASE_JWKS_URL');
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: secret,
-      algorithms: ['HS256'],
+      algorithms: ['ES256'],
+      secretOrKeyProvider: jwksRsa.passportJwtSecret({
+        jwksUri,
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 10,
+      }) as any,
+      // issuer: configService.get('SUPABASE_JWT_ISSUER'),
+      // audience: configService.get('SUPABASE_JWT_AUDIENCE') ?? undefined,
     });
   }
 
   async validate(payload: SupabaseJwtPayload) {
     try {
-      // Extrair informações do usuário do payload
-      const userInfo = this.authService.extractUserInfo(payload);
-
-      // Verificar se o token não expirou (verificação adicional)
-      const now = Math.floor(Date.now() / 1000);
-      if (payload.exp < now) {
-        throw new UnauthorizedException({
-          error: 'TOKEN_EXPIRED',
-          message: 'Token de autenticação expirado',
-          details: 'Faça login novamente para obter um novo token',
-        });
-      }
-
-      return userInfo;
+      return this.authService.extractUserInfo(payload);
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
+      if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException({
         error: 'INVALID_TOKEN',
         message: 'Token de autenticação inválido',
