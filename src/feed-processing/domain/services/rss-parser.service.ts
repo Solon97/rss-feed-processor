@@ -32,7 +32,7 @@ export class RssParserService {
     try {
       const feed = await this.parser.parseURL(rssUrl);
       // Processa apenas os 5 itens mais recentes
-      const recentItems = feed.items.slice(0, 5);
+      const recentItems = feed.items.slice(0, 10);
       const itemsWithThumbnails = await Promise.all(
         recentItems.map(async (item): Promise<FeedItem> => {
           const thumbnail =
@@ -75,7 +75,7 @@ export class RssParserService {
   ): Promise<{ title: string; urls: string[] }> {
     try {
       const feed = await this.parser.parseURL(rssUrl);
-      const recentItems = feed.items.slice(0, 5);
+      const recentItems = feed.items.slice(0, 10);
 
       return {
         title: ContentExtractorUtil.extractMainTitle(feed.title),

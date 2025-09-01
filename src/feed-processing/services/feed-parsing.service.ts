@@ -40,7 +40,7 @@ export class FeedParsingService {
       return {
         feedUrl: validation.feedUrl,
         feedType: validation.type,
-        items: feedData.items.slice(0, 5).map((item) => ({
+        items: feedData.items.slice(0, 10).map((item) => ({
           title: item.title,
           link: item.link,
           pubDate: item.pubDate,
