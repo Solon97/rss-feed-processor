@@ -5,6 +5,7 @@ import { StripeService } from './services/stripe.service';
 import { StripeController } from './controllers/stripe.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { FeedModule } from '../feed/feed.module';
+import { QueueModule } from '../queue/queue.module';
 import { SubscriptionService } from './services/subscription.service';
 import { WebhookService } from './services/webhook.service';
 import { WebhookController } from './controllers/webhook.controller';
@@ -13,7 +14,7 @@ import { CheckoutService } from './services/checkout.service';
 import { CheckoutController } from './controllers/checkout.controller';
 
 @Module({
-  imports: [PrismaModule, FeedModule],
+  imports: [PrismaModule, FeedModule, QueueModule],
   providers: [
     StripeService,
     SubscriptionService,

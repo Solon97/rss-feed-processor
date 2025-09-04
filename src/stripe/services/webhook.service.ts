@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SubscriptionService } from './subscription.service';
 import { FeedService } from '../../feed/feed.service';
+import { EmailQueueService } from '../../queue/services/email-queue.service';
+import { EmailTemplateType } from '../../email/templates';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -10,6 +12,7 @@ export class WebhookService {
   constructor(
     private readonly subscriptionService: SubscriptionService,
     private readonly feedService: FeedService,
+    private readonly emailQueueService: EmailQueueService,
   ) {}
 
   /**
@@ -45,6 +48,15 @@ export class WebhookService {
           });
           await this.handleCheckoutSessionCompleted(
             event.data.object as Stripe.Checkout.Session,
+          );
+          break;
+
+        case 'customer.subscription.trial_will_end':
+          this.logger.log(`Processing webhook event: ${event.type}`, {
+            eventId: event.id,
+          });
+          await this.handleTrialWillEnd(
+            event.data.object as Stripe.Subscription,
           );
           break;
 
@@ -225,6 +237,70 @@ export class WebhookService {
           subscription: subscriptionId,
         },
       );
+    }
+  }
+
+  /**
+   * Handle trial will end event
+   */
+  private async handleTrialWillEnd(
+    subscription: Stripe.Subscription,
+  ): Promise<void> {
+    this.logger.log('Processing trial will end', {
+      subscriptionId: subscription.id,
+      trialEnd: subscription.trial_end,
+    });
+
+    try {
+      // Get user information from subscription
+      const userInfo =
+        await this.subscriptionService.getUserInfoFromSubscription(
+          subscription.id,
+        );
+
+      if (!userInfo) {
+        this.logger.warn(
+          'No user info found for subscription in trial_will_end event',
+          {
+            subscriptionId: subscription.id,
+          },
+        );
+        return;
+      }
+
+      // Get trial end date
+      const trialEndDate = subscription.trial_end
+        ? new Date(subscription.trial_end * 1000)
+        : null;
+
+      if (!trialEndDate) {
+        this.logger.warn('No trial end date found in subscription', {
+          subscriptionId: subscription.id,
+        });
+        return;
+      }
+
+      // Queue trial ending email
+      await this.emailQueueService.addEmailToQueue({
+        template: EmailTemplateType.TRIAL_ENDING,
+        variables: {
+          trialEndDate: trialEndDate.toISOString(),
+        },
+        to: userInfo.email,
+        toName: userInfo.email.split('@')[0], // Use email prefix as name fallback
+      });
+
+      this.logger.log('Trial ending email queued successfully', {
+        subscriptionId: subscription.id,
+        userEmail: userInfo.email,
+        trialEndDate: trialEndDate.toISOString(),
+      });
+    } catch (error) {
+      this.logger.error(
+        `Error processing trial_will_end event for subscription ${subscription.id}`,
+        error,
+      );
+      throw error;
     }
   }
 }

@@ -242,4 +242,53 @@ export class SubscriptionService {
       return null;
     }
   }
+
+  /**
+   * Get user information from Stripe subscription ID
+   */
+  async getUserInfoFromSubscription(stripeSubscriptionId: string): Promise<{
+    userId: string;
+    email: string;
+  } | null> {
+    try {
+      const subscription = await this.prisma.user_subscriptions.findUnique({
+        where: {
+          stripe_subscription_id: stripeSubscriptionId,
+        },
+        select: {
+          user_id: true,
+        },
+      });
+
+      if (!subscription) {
+        return null;
+      }
+
+      // Get user email from stripe_customers table
+      const customer = await this.prisma.stripe_customers.findUnique({
+        where: {
+          user_id: subscription.user_id,
+        },
+        select: {
+          email: true,
+        },
+      });
+
+      if (!customer) {
+        this.logger.warn(`No customer found for user ${subscription.user_id}`);
+        return null;
+      }
+
+      return {
+        userId: subscription.user_id,
+        email: customer.email,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error fetching user info for subscription ${stripeSubscriptionId}`,
+        error,
+      );
+      return null;
+    }
+  }
 }

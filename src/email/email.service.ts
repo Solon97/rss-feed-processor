@@ -45,6 +45,55 @@ export class EmailService {
   }
 
   /**
+   * Sends a trial ending email to user
+   */
+  async sendTrialEndingEmail(
+    userEmail: string,
+    trialEndDate: Date,
+    userName?: string,
+  ): Promise<EmailSendResult> {
+    const fromEmail = this.getFromEmailAddress();
+    const now = new Date();
+    const timeUntilEnd = trialEndDate.getTime() - now.getTime();
+    const daysUntilEnd = Math.ceil(timeUntilEnd / (1000 * 60 * 60 * 24));
+
+    let trialEndsIn: string;
+    if (daysUntilEnd <= 0) {
+      trialEndsIn = 'hoje';
+    } else if (daysUntilEnd === 1) {
+      trialEndsIn = '1 dia';
+    } else {
+      trialEndsIn = `${daysUntilEnd} dias`;
+    }
+
+    const dashboardUrl = `${this.configService.get('FRONTEND_URL')}/dashboard`;
+    const subscribeUrl = `${this.configService.get('FRONTEND_URL')}/subscribe`;
+    const supportEmail =
+      this.configService.get('SUPPORT_EMAIL') || 'suporte@feedagg.com';
+
+    return this.emailProvider.sendEmail({
+      from: fromEmail,
+      to: userName ? { email: userEmail, name: userName } : userEmail,
+      subject: 'Informações sobre seu período de teste - FeedAgg 📋',
+      html: this.emailTemplateService.processTemplate(
+        EmailTemplateType.TRIAL_ENDING,
+        {
+          userName: userName || 'amigo',
+          trialEndsIn,
+          trialEndDate: trialEndDate.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+          }),
+          dashboardUrl,
+          subscribeUrl,
+          supportEmail,
+        },
+      ),
+    });
+  }
+
+  /**
    * Sends a password reset email
    */
   async sendPasswordResetEmail(

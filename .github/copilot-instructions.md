@@ -111,11 +111,17 @@ pnpm run start:dev
 - **YouTube Data API v3** → channel/playlist metadata
 - **Supabase** → authentication provider (no direct DB queries)
 - **Stripe** → webhook handlers in `src/stripe/controllers/webhook.controller.ts`
+  - `customer.subscription.created/updated/resumed/paused` → subscription management
+  - `customer.subscription.deleted` → subscription cancellation
+  - `customer.subscription.trial_will_end` → informational email about trial ending
+  - `checkout.session.completed` → checkout completion
 
 ### Queue Job Types
 
 - `feed-processing` → scheduled RSS/YouTube updates
 - `email` → notification jobs (via Resend provider)
+  - `welcome` → welcome email for new users
+  - `trial_ending` → informational email when trial is ending
 
 ### Content Processing
 
@@ -141,6 +147,7 @@ pnpm run start:dev
 - **2025-08-31**: Added **Changelog section** and explicit Copilot instructions for maintaining this document.
 - **2025-08-31**: **Refactored cron jobs to use environment variables**: Replaced hardcoded `CronExpression.EVERY_30_MINUTES` and `CronExpression.EVERY_5_MINUTES` with dynamic cron expressions from environment variables (`FEED_PROCESSING_CRON`, `QUEUE_HEALTH_CHECK_CRON`). Updated `FeedSchedulerService` to use `SchedulerRegistry` with `OnModuleInit` pattern for proper dynamic cron setup. Added validation for cron environment variables in `EnvironmentValidationService`.
 - **2025-08-31**: **Added global request logging interceptor**: Created `RequestLoggingInterceptor` in `src/common/interceptors/` to log all HTTP requests with method, URL, duration, status code, and sanitized request body. Sensitive fields (password, token, secret, key, authorization) are automatically redacted. Registered globally in `app.module.ts`.
+- **2025-09-04**: **Added trial ending email functionality**: Created new email template (`trial_ending.html`) and handler for Stripe webhook `customer.subscription.trial_will_end`. Email uses informational tone with green branding (matching welcome template) instead of urgent orange colors. Added `EmailTemplateType.TRIAL_ENDING`, new method `sendTrialEndingEmail()` in EmailService, and `getUserInfoFromSubscription()` in SubscriptionService. Updated WebhookService to handle trial ending events and queue appropriate emails. Template emphasizes that subscription will continue automatically, providing information rather than pressure to convert.
 
 ---
 

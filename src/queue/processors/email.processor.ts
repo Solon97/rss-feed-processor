@@ -18,13 +18,23 @@ export class EmailProcessor {
       `Processing email job ${job.id} with template ${job.data.template}`,
     );
 
-    const { template, to, toName } = job.data;
+    const { template, to, toName, variables } = job.data;
 
     let result;
 
     switch (template) {
       case EmailTemplateType.WELCOME:
         result = await this.emailService.sendWelcomeEmail(to, toName);
+        break;
+      case EmailTemplateType.TRIAL_ENDING:
+        if (!variables?.trialEndDate) {
+          throw new Error('Trial end date is required for trial ending email');
+        }
+        result = await this.emailService.sendTrialEndingEmail(
+          to,
+          new Date(variables.trialEndDate),
+          toName,
+        );
         break;
       default:
         throw new Error(`Unknown email template type: ${template}`);
