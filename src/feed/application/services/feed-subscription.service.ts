@@ -9,7 +9,7 @@ import {
 } from '../../../common/exceptions/feed.exceptions';
 import { determineFeedType } from '../../utils/feed-type.utils';
 
-const FREE_PLAN_LIMIT = 1;
+const FREE_PLAN_LIMIT = 3;
 
 /**
  * Service for Feed Subscription Management
