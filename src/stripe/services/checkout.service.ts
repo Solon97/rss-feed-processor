@@ -130,7 +130,7 @@ export class CheckoutService {
             created_by: 'checkout_service',
             user_id: userId, // Também no metadata da subscription
           },
-          trial_period_days: 1,
+          trial_period_days: 14,
         },
         metadata: {
           created_by: 'checkout_service',
