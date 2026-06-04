@@ -77,7 +77,6 @@ export class FeedService {
       feed = await this.feedSubscription.createFeedRecord({
         name: feedData.title,
         url: validation.feedUrl,
-        items: feedData.items.slice(0, 10), // Only save the latest 5 items
       });
     }
 

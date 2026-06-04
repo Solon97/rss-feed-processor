@@ -12,6 +12,7 @@ import {
   UserInfo,
 } from '../../auth/decorators/current-user.decorator';
 import { AppAuthGuard } from '../../auth/guards/auth.guard';
+import { IsStripeEnabledGuard } from '../../common/guards/stripe-enabled.guard';
 import {
   CheckoutSessionResponseDto,
   CreateCheckoutSessionDto,
@@ -20,7 +21,7 @@ import {
 import { CheckoutService } from '../services/checkout.service';
 
 @Controller('stripe/checkout')
-@UseGuards(AppAuthGuard)
+@UseGuards(IsStripeEnabledGuard, AppAuthGuard)
 export class CheckoutController {
   private readonly logger = new Logger(CheckoutController.name);
 

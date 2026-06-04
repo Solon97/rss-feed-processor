@@ -66,6 +66,7 @@ export class FeedQueueService {
         feedId,
         feedUrl,
         jobType: JobTypes.PROCESS_NEW_FEED,
+        isInitialImport: true,
       };
 
       // Send to priority queue for immediate processing

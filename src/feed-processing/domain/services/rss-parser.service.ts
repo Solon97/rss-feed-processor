@@ -26,15 +26,14 @@ export class RssParserService {
   }
 
   /**
-   * Processa feed RSS e retorna os 5 itens mais recentes
+   * Processa feed RSS e retorna todos os itens disponíveis sem scraping de conteúdo.
+   * O conteúdo completo é extraído posteriormente pelo FeedProcessor via ContentExtractionService.
    */
   async parseRssFeed(rssUrl: string, feedType: FeedType): Promise<Feed> {
     try {
       const feed = await this.parser.parseURL(rssUrl);
-      // Processa apenas os 5 itens mais recentes
-      const recentItems = feed.items.slice(0, 10);
       const itemsWithThumbnails = await Promise.all(
-        recentItems.map(async (item): Promise<FeedItem> => {
+        feed.items.map(async (item): Promise<FeedItem> => {
           const thumbnail =
             await ThumbnailExtractorUtil.extractThumbnailFromFeedItem(item);
           return {
@@ -44,7 +43,7 @@ export class RssParserService {
             content:
               feedType === 'youtube'
                 ? item['media:group']?.['media:description']?.join('')
-                : await ContentExtractorUtil.scrapeArticleContent(item.link),
+                : item.content || item['contentSnippet'] || '',
             thumbnail: thumbnail,
           };
         }),

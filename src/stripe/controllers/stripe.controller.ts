@@ -1,9 +1,10 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
-import { StripeService } from '../services/stripe.service';
 import { AppAuthGuard } from '@/auth/guards/auth.guard';
+import { IsStripeEnabledGuard } from '../../common/guards/stripe-enabled.guard';
+import { StripeService } from '../services/stripe.service';
 
 @Controller('stripe')
-@UseGuards(AppAuthGuard)
+@UseGuards(IsStripeEnabledGuard, AppAuthGuard)
 export class StripeController {
   constructor(private readonly stripeService: StripeService) {}
 

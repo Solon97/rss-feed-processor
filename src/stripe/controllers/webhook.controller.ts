@@ -1,18 +1,21 @@
 import {
+  BadRequestException,
   Controller,
-  Post,
   Headers,
-  Req,
   HttpCode,
   HttpStatus,
   Logger,
-  BadRequestException,
+  Post,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { IsStripeEnabledGuard } from '../../common/guards/stripe-enabled.guard';
 import { StripeService } from '../services/stripe.service';
 import { WebhookService } from '../services/webhook.service';
 
 @Controller('stripe/webhooks')
+@UseGuards(IsStripeEnabledGuard)
 export class WebhookController {
   private readonly logger = new Logger(WebhookController.name);
 

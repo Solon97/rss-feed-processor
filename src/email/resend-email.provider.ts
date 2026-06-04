@@ -14,10 +14,9 @@ export class ResendEmailProvider implements EmailProvider {
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
-    if (!apiKey) {
-      throw new Error('RESEND_API_KEY is required but not provided');
+    if (apiKey) {
+      this.resend = new Resend(apiKey);
     }
-    this.resend = new Resend(apiKey);
   }
 
   async sendEmail(request: SendEmailRequest): Promise<EmailSendResult> {

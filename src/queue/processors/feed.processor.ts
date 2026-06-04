@@ -21,10 +21,12 @@ export class FeedProcessor {
   async processFeed(
     job: Message<FeedProcessingJobData>,
   ): Promise<FeedItemProcessingResult> {
-    const { feedId, feedUrl } = job.data;
+    const { feedId, feedUrl, isInitialImport } = job.data;
     const startTime = Date.now();
 
-    this.logger.log(`Processing feed ${feedUrl} - Job ${job.id}`);
+    this.logger.log(
+      `Processing feed ${feedUrl} - Job ${job.id}${isInitialImport ? ' (initial import)' : ''}`,
+    );
 
     try {
       // Update feed last_fetched_at timestamp
@@ -40,8 +42,10 @@ export class FeedProcessor {
         throw new Error('No feed data or items found');
       }
 
-      // Get the 10 most recent items
-      const recentItems = feedData.items.slice(0, 10);
+      // On initial import process all available items; on regular sync only the 10 most recent
+      const recentItems = isInitialImport
+        ? feedData.items
+        : feedData.items.slice(0, 10);
 
       let processedItems = 0;
       let newItems = 0;

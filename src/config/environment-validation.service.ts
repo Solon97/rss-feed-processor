@@ -46,14 +46,14 @@ export class EnvironmentValidationService {
         'STRIPE_MONTHLY_PRICE_ID',
         'STRIPE_YEARLY_PRICE_ID',
       ],
-      enabled: true,
+      enabled: process.env.ENABLE_STRIPE === 'true',
     },
     {
       name: 'Resend',
       description: 'Serviço de envio de emails',
       requiredVars: ['RESEND_API_KEY', 'RESEND_FROM_EMAIL'],
       optionalVars: ['FRONTEND_URL'],
-      enabled: true,
+      enabled: process.env.ENABLE_EMAIL === 'true',
     },
     {
       name: 'Cron System',
@@ -71,6 +71,18 @@ export class EnvironmentValidationService {
    */
   validateEnvironment(): boolean {
     this.logger.log('🔍 Iniciando validação das variáveis de ambiente...');
+
+    if (process.env.ENABLE_STRIPE !== 'true') {
+      this.logger.log(
+        'ℹ️  Stripe desabilitado (ENABLE_STRIPE !== "true") — variáveis Stripe não são obrigatórias',
+      );
+    }
+
+    if (process.env.ENABLE_EMAIL !== 'true') {
+      this.logger.log(
+        'ℹ️  Email desabilitado (ENABLE_EMAIL !== "true") — variáveis Resend não são obrigatórias',
+      );
+    }
 
     const enabledServices = this.serviceConfigs.filter(
       (service) => service.enabled !== false,

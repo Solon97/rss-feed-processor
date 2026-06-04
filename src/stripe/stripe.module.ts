@@ -24,6 +24,9 @@ import { CheckoutController } from './controllers/checkout.controller';
     {
       provide: 'STRIPE_CLIENT',
       useFactory: (configService: ConfigService) => {
+        if (process.env.ENABLE_STRIPE !== 'true') {
+          return null;
+        }
         return new Stripe(configService.get<string>('STRIPE_SECRET_KEY'), {
           apiVersion: '2025-06-30.basil',
           typescript: true,

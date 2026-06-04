@@ -3,6 +3,7 @@ import { EmailTemplateType } from '@/email/templates';
 export interface FeedProcessingJobData {
   feedId: string;
   feedUrl: string;
+  isInitialImport?: boolean;
 }
 
 export interface EmailJobData {

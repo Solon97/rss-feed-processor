@@ -22,6 +22,15 @@ export class EmailService {
     this.emailProvider = new ResendEmailProvider(configService);
   }
 
+  private isEnabled(): boolean {
+    return process.env.ENABLE_EMAIL === 'true';
+  }
+
+  private skippedResult(): EmailSendResult {
+    this.logger.debug('Email skipped — ENABLE_EMAIL is not set to "true"');
+    return { id: '', success: true };
+  }
+
   /**
    * Sends a welcome email to a new user
    */
@@ -29,6 +38,7 @@ export class EmailService {
     userEmail: string,
     userName?: string,
   ): Promise<EmailSendResult> {
+    if (!this.isEnabled()) return this.skippedResult();
     const fromEmail = this.getFromEmailAddress();
 
     return this.emailProvider.sendEmail({
@@ -52,6 +62,7 @@ export class EmailService {
     trialEndDate: Date,
     userName?: string,
   ): Promise<EmailSendResult> {
+    if (!this.isEnabled()) return this.skippedResult();
     const fromEmail = this.getFromEmailAddress();
     const now = new Date();
     const timeUntilEnd = trialEndDate.getTime() - now.getTime();
@@ -101,6 +112,7 @@ export class EmailService {
     resetToken: string,
     userName?: string,
   ): Promise<EmailSendResult> {
+    if (!this.isEnabled()) return this.skippedResult();
     const fromEmail = this.getFromEmailAddress();
     const resetUrl = `${this.configService.get('FRONTEND_URL')}/reset-password?token=${resetToken}`;
 
@@ -123,6 +135,7 @@ export class EmailService {
     subscriptionType: string,
     userName?: string,
   ): Promise<EmailSendResult> {
+    if (!this.isEnabled()) return this.skippedResult();
     const fromEmail = this.getFromEmailAddress();
 
     return this.emailProvider.sendEmail({
@@ -140,6 +153,9 @@ export class EmailService {
    * Sends a generic email
    */
   async sendEmail(request: SendEmailRequest): Promise<EmailSendResult> {
+    if (!this.isEnabled()) {
+      return this.skippedResult();
+    }
     return this.emailProvider.sendEmail(request);
   }
 

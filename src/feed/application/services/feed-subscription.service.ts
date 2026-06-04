@@ -76,25 +76,13 @@ export class FeedSubscriptionService {
   }
 
   /**
-   * Creates a feed record in the database
-   * This method is called after the feed has been validated and processed by the processing module
+   * Creates a feed record in the database and enqueues an initial import job.
+   * Items are not saved inline — the queue processor handles all items with full content extraction.
    */
-  async createFeedRecord(feedData: {
-    name: string;
-    url: string;
-    items: Array<{
-      title: string;
-      link: string;
-      pubDate?: string;
-      content?: string;
-      thumbnail?: string;
-    }>;
-  }) {
+  async createFeedRecord(feedData: { name: string; url: string }) {
     try {
-      // Determine the feed type based on URL
       const feedType = determineFeedType(feedData.url);
 
-      // Create the feed record
       const feed = await this.prisma.feeds.create({
         data: {
           name: feedData.name || 'Untitled Feed',
@@ -106,29 +94,6 @@ export class FeedSubscriptionService {
         },
       });
 
-      // Save the feed items
-      const feedItems = [];
-      for (const item of feedData.items) {
-        try {
-          const feedItem = await this.prisma.feed_items.create({
-            data: {
-              feed_id: feed.id,
-              title: item.title,
-              url: item.link,
-              content: item.content || '',
-              thumbnail: item.thumbnail,
-              published_at: item.pubDate ? new Date(item.pubDate) : new Date(),
-            },
-          });
-
-          feedItems.push(feedItem);
-        } catch (error) {
-          console.error(`Error saving item ${item.link}:`, error.message);
-          // Continue with next item instead of failing completely
-        }
-      }
-
-      // Add the newly created feed to the priority queue for immediate processing
       await this.feedQueueService.addNewFeedToPriorityQueue(feed.id, feed.url);
 
       return feed;
