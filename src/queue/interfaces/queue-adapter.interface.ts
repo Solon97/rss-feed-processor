@@ -11,6 +11,12 @@ export interface EmailQueueJobData {
   toName?: string;
 }
 
+export interface QueueWorkerOptions {
+  localConcurrency?: number;
+  batchSize?: number;
+  pollingIntervalSeconds?: number;
+}
+
 export interface QueueAdapter {
   /**
    * Initializes the queue adapter
@@ -39,6 +45,7 @@ export interface QueueAdapter {
   registerWorker<T>(
     queueName: string,
     handler: (jobData: T) => Promise<any>,
+    options?: QueueWorkerOptions,
   ): Promise<void>;
 
   /**

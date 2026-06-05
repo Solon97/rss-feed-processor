@@ -5,6 +5,7 @@ import {
   OnModuleDestroy,
   Inject,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { QueueAdapter } from '../interfaces/queue-adapter.interface';
 import { FeedProcessor } from '../processors/feed.processor';
 import { EmailProcessor } from '../processors/email.processor';
@@ -16,6 +17,7 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @Inject('QueueAdapter') private readonly queueAdapter: QueueAdapter,
+    private readonly configService: ConfigService,
     private readonly feedProcessor: FeedProcessor,
     private readonly emailProcessor: EmailProcessor,
   ) {}
@@ -31,6 +33,19 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
 
   private async initializeWorkers(): Promise<void> {
     this.logger.log('Initializing queue workers...');
+
+    const defaultFeedWorkers = this.getWorkerConcurrency(
+      'QUEUE_FEED_DEFAULT_CONCURRENCY',
+      1,
+    );
+    const priorityFeedWorkers = this.getWorkerConcurrency(
+      'QUEUE_FEED_PRIORITY_CONCURRENCY',
+      1,
+    );
+    const emailWorkers = this.getWorkerConcurrency(
+      'QUEUE_EMAIL_CONCURRENCY',
+      1,
+    );
 
     // Create queues first
     await this.queueAdapter.createQueue('feed-processing-default');
@@ -51,6 +66,7 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
 
         throw new Error(`Unknown job type: ${jobData.jobType}`);
       },
+      { localConcurrency: defaultFeedWorkers },
     );
 
     await this.queueAdapter.registerWorker(
@@ -66,6 +82,7 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
 
         throw new Error(`Unknown job type: ${jobData.jobType}`);
       },
+      { localConcurrency: priorityFeedWorkers },
     );
 
     // Register email processing worker
@@ -75,8 +92,27 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
         const message = { id: `email-job-${Date.now()}`, data: jobData };
         return await this.emailProcessor.processEmailJob(message);
       },
+      { localConcurrency: emailWorkers },
     );
 
     this.logger.log('Queue workers initialized successfully');
+  }
+
+  private getWorkerConcurrency(envKey: string, defaultValue: number): number {
+    const rawValue = this.configService.get<string>(envKey);
+
+    if (!rawValue) {
+      return defaultValue;
+    }
+
+    const parsedValue = Number.parseInt(rawValue, 10);
+    if (Number.isNaN(parsedValue) || parsedValue < 1) {
+      this.logger.warn(
+        `${envKey} must be a positive integer. Using default value ${defaultValue}.`,
+      );
+      return defaultValue;
+    }
+
+    return parsedValue;
   }
 }

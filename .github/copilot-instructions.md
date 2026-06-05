@@ -61,6 +61,9 @@ pnpm run start:dev
 
 - `FEED_PROCESSING_CRON` - Feed processing schedule (default: every 30 minutes)
 - `QUEUE_HEALTH_CHECK_CRON` - Health check schedule (default: every 5 minutes)
+- `QUEUE_FEED_DEFAULT_CONCURRENCY` - Local worker concurrency for default feed queue (default in `.env.example`: 3)
+- `QUEUE_FEED_PRIORITY_CONCURRENCY` - Local worker concurrency for priority feed queue (default in `.env.example`: 2)
+- `QUEUE_EMAIL_CONCURRENCY` - Local worker concurrency for email queue (default in `.env.example`: 3)
 - Uses `SchedulerRegistry` with dynamic cron setup in `FeedSchedulerService.setupCronJobs()`
 
 ---
@@ -101,6 +104,7 @@ pnpm run start:dev
 - Copy `.env.example` → `.env` for local setup
 - Required keys: Supabase, PostgreSQL, YouTube API, Stripe, Queue System cron expressions
 - **Cron Jobs**: All cron expressions are configurable via environment variables (no hardcoded values)
+- **Queue Workers**: Queue worker concurrency can be tuned by environment variables per queue
 
 ---
 
@@ -148,6 +152,7 @@ pnpm run start:dev
 - **2025-08-31**: **Refactored cron jobs to use environment variables**: Replaced hardcoded `CronExpression.EVERY_30_MINUTES` and `CronExpression.EVERY_5_MINUTES` with dynamic cron expressions from environment variables (`FEED_PROCESSING_CRON`, `QUEUE_HEALTH_CHECK_CRON`). Updated `FeedSchedulerService` to use `SchedulerRegistry` with `OnModuleInit` pattern for proper dynamic cron setup. Added validation for cron environment variables in `EnvironmentValidationService`.
 - **2025-08-31**: **Added global request logging interceptor**: Created `RequestLoggingInterceptor` in `src/common/interceptors/` to log all HTTP requests with method, URL, duration, status code, and sanitized request body. Sensitive fields (password, token, secret, key, authorization) are automatically redacted. Registered globally in `app.module.ts`.
 - **2025-09-04**: **Added trial ending email functionality**: Created new email template (`trial_ending.html`) and handler for Stripe webhook `customer.subscription.trial_will_end`. Email uses informational tone with green branding (matching welcome template) instead of urgent orange colors. Added `EmailTemplateType.TRIAL_ENDING`, new method `sendTrialEndingEmail()` in EmailService, and `getUserInfoFromSubscription()` in SubscriptionService. Updated WebhookService to handle trial ending events and queue appropriate emails. Template emphasizes that subscription will continue automatically, providing information rather than pressure to convert.
+- **2026-06-05**: **Added configurable pg-boss worker concurrency per queue**: Extended queue adapter worker registration to accept pg-boss worker options and wired `localConcurrency` through `WorkerService`. Added environment variables `QUEUE_FEED_DEFAULT_CONCURRENCY`, `QUEUE_FEED_PRIORITY_CONCURRENCY`, and `QUEUE_EMAIL_CONCURRENCY` with safe parsing and fallback behavior to configure parallel workers without code changes.
 
 ---
 

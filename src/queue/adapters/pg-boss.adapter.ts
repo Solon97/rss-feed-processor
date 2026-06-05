@@ -5,6 +5,7 @@ import {
   QueueAdapter,
   QueueJobData,
   EmailQueueJobData,
+  QueueWorkerOptions,
 } from '../interfaces/queue-adapter.interface';
 
 @Injectable()
@@ -69,9 +70,10 @@ export class PgBossAdapter implements QueueAdapter {
   async registerWorker<T>(
     queueName: string,
     handler: (jobData: T) => Promise<any>,
+    options?: QueueWorkerOptions,
   ): Promise<void> {
     try {
-      await this.boss.work(queueName, async (jobs) => {
+      await this.boss.work(queueName, options ?? {}, async (jobs) => {
         // pg-boss passes an array of jobs, we'll process them one by one
         for (const job of jobs) {
           this.logger.log(`Processing job ${job.id} from queue ${queueName}`);
@@ -86,7 +88,9 @@ export class PgBossAdapter implements QueueAdapter {
         }
       });
 
-      this.logger.log(`Worker registered for queue ${queueName}`);
+      this.logger.log(
+        `Worker registered for queue ${queueName} with localConcurrency=${options?.localConcurrency ?? 1}`,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to register worker for queue ${queueName}:`,
