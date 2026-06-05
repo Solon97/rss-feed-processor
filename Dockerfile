@@ -71,5 +71,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Expor porta
 EXPOSE 3000
 
-# Comando para produção
-CMD ["dumb-init", "node", "dist/main"]
+# Comando para produção — roda migrations antes de iniciar a aplicação
+CMD ["dumb-init", "sh", "-c", "node_modules/.bin/prisma migrate deploy && exec node dist/main"]

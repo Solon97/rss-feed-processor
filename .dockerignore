@@ -123,5 +123,3 @@ jest.config.js
 .eslintrc.js
 .editorconfig
 
-# Prisma (will be copied separately)
-prisma/migrations/
