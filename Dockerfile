@@ -57,6 +57,7 @@ COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=build --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nestjs:nodejs /app/package.json ./
 COPY --from=build --chown=nestjs:nodejs /app/prisma ./prisma
+COPY --from=build --chown=nestjs:nodejs /app/prisma.config.ts ./
 
 # Criar diretório de logs
 RUN mkdir -p /app/logs && chown nestjs:nodejs /app/logs
