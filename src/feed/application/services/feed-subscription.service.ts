@@ -8,6 +8,7 @@ import {
   SubscriptionLimitExceededException,
 } from '../../../common/exceptions/feed.exceptions';
 import { determineFeedType } from '../../utils/feed-type.utils';
+import { SubscriptionService } from '@/subscription/services/subscription.service';
 
 const FREE_PLAN_LIMIT = 3;
 
@@ -21,6 +22,7 @@ export class FeedSubscriptionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly feedQueueService: FeedQueueService,
+    private readonly stripeSubscriptionService: SubscriptionService,
   ) {}
 
   /**
@@ -112,17 +114,8 @@ export class FeedSubscriptionService {
   }
 
   async canActivateNewFeed(userId: string) {
-    const activeSubscription = await this.prisma.user_subscriptions.findFirst({
-      where: {
-        user_id: userId,
-        status: {
-          in: ['active', 'trialing'],
-        },
-        current_period_end: {
-          gte: new Date(),
-        },
-      },
-    });
+    const activeSubscription =
+      await this.stripeSubscriptionService.findActiveByUserId(userId);
 
     if (activeSubscription) {
       return;

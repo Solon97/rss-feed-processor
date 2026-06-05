@@ -9,9 +9,14 @@ import { QueueModule } from '../queue/queue.module';
 import { FeedSubscriptionService } from './application/services/feed-subscription.service';
 import { UserFeedManagementService } from './application/services/user-feed-management.service';
 import { TopicManagementService } from './application/services/topic-management.service';
+import { SubscriptionModule } from '@/subscription/subscription.module';
 
 @Module({
-  imports: [FeedProcessingModule, forwardRef(() => QueueModule)],
+  imports: [
+    FeedProcessingModule,
+    forwardRef(() => QueueModule),
+    SubscriptionModule,
+  ],
   controllers: [FeedController, TopicController],
   providers: [
     // Main Service (Facade)
