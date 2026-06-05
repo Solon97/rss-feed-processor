@@ -110,8 +110,5 @@
     "moduleNameMapper": {
       "^@app/abstract-stripe(|/.*)$": "<rootDir>/libs/abstract-stripe/src/$1"
     }
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["@nestjs/core", "@prisma/engines", "prisma"]
   }
 }

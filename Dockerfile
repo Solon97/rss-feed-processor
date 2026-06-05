@@ -4,19 +4,12 @@
 FROM node:lts-alpine AS base
 WORKDIR /app
 
-# Instalar dependências do sistema necessárias
-RUN apk add --no-cache \
-    curl \
-    git \
-    python3 \
-    make \
-    g++
-
-# Instalar pnpm globalmente
-RUN npm install -g pnpm
+# Instalar dependências do sistema e pnpm em uma única camada
+RUN apk add --no-cache curl python3 make g++ && \
+    npm install -g pnpm
 
 # Copiar arquivos de configuração de dependências
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma/
 
 # Development stage
@@ -25,9 +18,6 @@ ENV NODE_ENV=development
 
 # Instalar todas as dependências (incluindo dev)
 RUN pnpm install --frozen-lockfile
-
-# Gerar Prisma Client
-RUN pnpm prisma generate
 
 # Copiar código fonte
 COPY . .
@@ -40,32 +30,27 @@ CMD ["pnpm", "run", "start:dev"]
 
 # Build stage
 FROM base AS build
-ENV NODE_ENV=production
 
-# Instalar apenas dependências de produção
-RUN pnpm install --frozen-lockfile
+# Instalar todas as dependências, incluindo devDeps necessárias para compilar
+RUN pnpm install --frozen-lockfile --prod=false
 
 # Copiar código fonte
 COPY . .
 
-# Gerar Prisma Client
-RUN pnpm prisma generate
-
-# Construir aplicação
+# Construir aplicação (o script já executa prisma generate internamente)
 RUN pnpm run build
+
+# Remover devDependencies antes de copiar para produção
+RUN pnpm prune --prod
 
 # Production stage
 FROM node:lts-alpine AS production
 WORKDIR /app
 
-# Criar usuário não-root
-RUN addgroup -g 1001 -S nodejs && \
+# Criar usuário não-root e instalar dependências de runtime em uma única camada
+RUN apk add --no-cache curl dumb-init && \
+    addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
-
-# Instalar apenas dependências de runtime
-RUN apk add --no-cache \
-    curl \
-    dumb-init
 
 # Copiar aplicação construída
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
