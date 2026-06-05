@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FeedParsingService } from '../../feed-processing/services/feed-parsing.service';
 import { ContentExtractionService } from '../../feed-processing/services/content-extraction.service';
+import { YouTubeDataApiService } from '../../feed-processing/domain/services/youtube-data-api.service';
+import { FeedItem } from '../../feed/interfaces/feed.interface';
 import {
   FeedProcessingJobData,
   FeedItemProcessingResult,
@@ -16,6 +18,7 @@ export class FeedProcessor {
     private readonly prisma: PrismaService,
     private readonly feedParsing: FeedParsingService,
     private readonly contentExtraction: ContentExtractionService,
+    private readonly youtubeApiService: YouTubeDataApiService,
   ) {}
 
   async processFeed(
@@ -35,23 +38,42 @@ export class FeedProcessor {
         data: { last_fetched_at: new Date() },
       });
 
-      // Parse the RSS feed
-      const feedData = await this.feedParsing.parseFeed(feedUrl);
+      // Fetch feed items — use YouTube Data API directly for YouTube feeds
+      let feedItems: FeedItem[];
+      const isYouTubeFeed = feedUrl.includes('youtube.com');
 
-      if (!feedData || !feedData.items) {
-        throw new Error('No feed data or items found');
+      if (isYouTubeFeed && this.youtubeApiService.isAvailable()) {
+        const channelId =
+          YouTubeDataApiService.extractChannelIdFromFeedUrl(feedUrl);
+        if (!channelId) {
+          throw new Error(
+            `Could not extract channel ID from feed URL: ${feedUrl}`,
+          );
+        }
+        // undefined = fetch all pages; 10 = regular sync limit
+        const maxResults = isInitialImport ? undefined : 10;
+        feedItems = await this.youtubeApiService.getChannelVideos(
+          channelId,
+          maxResults,
+        );
+        this.logger.debug(
+          `Fetched ${feedItems.length} videos from YouTube Data API for channel ${channelId}`,
+        );
+      } else {
+        const feedData = await this.feedParsing.parseFeed(feedUrl);
+        if (!feedData?.items) {
+          throw new Error('No feed data or items found');
+        }
+        feedItems = isInitialImport
+          ? feedData.items
+          : feedData.items.slice(0, 10);
       }
-
-      // On initial import process all available items; on regular sync only the 10 most recent
-      const recentItems = isInitialImport
-        ? feedData.items
-        : feedData.items.slice(0, 10);
 
       let processedItems = 0;
       let newItems = 0;
       const errors: string[] = [];
 
-      for (const item of recentItems) {
+      for (const item of feedItems) {
         try {
           // Check if item already exists
           const existingItem = await this.prisma.feed_items.findUnique({
@@ -71,12 +93,12 @@ export class FeedProcessor {
             continue;
           }
 
-          // Extract content for the item
           let content = item.content || '';
           let thumbnail = item.thumbnail || '';
-          let duration: string | undefined;
+          let duration = item.duration;
 
-          if (item.link) {
+          // For non-YouTube feeds (or YouTube without API), extract content per item
+          if (!isYouTubeFeed && item.link) {
             try {
               const extractedContent =
                 await this.contentExtraction.extractContent(item.link);
@@ -85,7 +107,7 @@ export class FeedProcessor {
               duration = extractedContent.duration;
             } catch (contentError) {
               this.logger.warn(
-                `Content extraction failed for ${item.link}: ${contentError.message}`,
+                `Content extraction failed for ${item.link}: ${(contentError as Error).message}`,
               );
             }
           }
@@ -110,7 +132,7 @@ export class FeedProcessor {
             `Created new feed item: ${item.title} - ${item.link}`,
           );
         } catch (itemError) {
-          const errorMsg = `Failed to process item "${item.title}": ${itemError.message}`;
+          const errorMsg = `Failed to process item "${item.title}": ${(itemError as Error).message}`;
           errors.push(errorMsg);
           this.logger.error(errorMsg);
           processedItems++;

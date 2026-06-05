@@ -1,20 +1,52 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { fetch } from 'undici';
+import { FeedItem } from '@/feed/interfaces/feed.interface';
 
-/**
- * YouTube Data API response interfaces
- */
 interface YouTubeVideoResponse {
   items: Array<{
     id: string;
     contentDetails: {
-      duration: string; // ISO 8601 format (e.g., "PT10M30S")
+      duration: string;
     };
     snippet?: {
       title: string;
       description: string;
       publishedAt: string;
+    };
+  }>;
+}
+
+interface YouTubePlaylistItemsResponse {
+  nextPageToken?: string;
+  items: Array<{
+    snippet: {
+      title: string;
+      description: string;
+      publishedAt: string;
+      thumbnails: {
+        maxres?: { url: string };
+        standard?: { url: string };
+        high?: { url: string };
+        medium?: { url: string };
+        default?: { url: string };
+      };
+      resourceId: {
+        videoId: string;
+      };
+    };
+    contentDetails: {
+      videoId: string;
+      videoPublishedAt: string;
+    };
+  }>;
+}
+
+interface YouTubeVideosListResponse {
+  items: Array<{
+    id: string;
+    contentDetails: {
+      duration: string;
     };
   }>;
 }
@@ -87,7 +119,7 @@ export class YouTubeDataApiService {
       return duration;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch duration for video ${videoId}: ${error.message}`,
+        `Failed to fetch duration for video ${videoId}: ${(error as Error).message}`,
       );
       return null;
     }
@@ -143,10 +175,158 @@ export class YouTubeDataApiService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to fetch video info for ${videoId}: ${error.message}`,
+        `Failed to fetch video info for ${videoId}: ${(error as Error).message}`,
       );
       return null;
     }
+  }
+
+  /**
+   * Extracts channel ID from a YouTube RSS feed URL or channel URL.
+   * Handles: youtube.com/feeds/videos.xml?channel_id=UC...
+   *          youtube.com/channel/UC...
+   */
+  static extractChannelIdFromFeedUrl(url: string): string | null {
+    try {
+      const parsed = new URL(url);
+      const channelId = parsed.searchParams.get('channel_id');
+      if (channelId) return channelId;
+
+      const match = parsed.pathname.match(/\/channel\/(UC[\w-]+)/);
+      if (match) return match[1];
+    } catch {
+      // invalid URL
+    }
+    return null;
+  }
+
+  /**
+   * Fetches videos for a channel via the YouTube Data API.
+   * When maxResults is undefined, paginates through all available videos.
+   * When maxResults is set, stops after collecting that many.
+   * Uses the uploads playlist trick (UU prefix) to avoid an extra channels.list call.
+   */
+  async getChannelVideos(
+    channelId: string,
+    maxResults?: number,
+  ): Promise<FeedItem[]> {
+    if (!this.isAvailable()) {
+      return [];
+    }
+
+    const uploadsPlaylistId = 'UU' + channelId.slice(2);
+    const pageSize = 50; // max allowed by YouTube API per request
+    const requestDelayMs = 500; // delay between consecutive API requests
+
+    const playlistItems: YouTubePlaylistItemsResponse['items'] = [];
+    let pageToken: string | undefined;
+    let isFirstPage = true;
+
+    try {
+      do {
+        if (!isFirstPage) {
+          await this.sleep(requestDelayMs);
+        }
+        isFirstPage = false;
+
+        const playlistUrl =
+          `${this.baseUrl}/playlistItems` +
+          `?part=snippet,contentDetails` +
+          `&playlistId=${uploadsPlaylistId}` +
+          `&maxResults=${pageSize}` +
+          `&key=${this.apiKey}` +
+          (pageToken ? `&pageToken=${pageToken}` : '');
+
+        const res = await fetch(playlistUrl, {
+          signal: AbortSignal.timeout(10000),
+          headers: { 'User-Agent': 'RSS-Feed-Processor/1.0' },
+        });
+
+        if (!res.ok) {
+          this.logger.warn(
+            `YouTube playlistItems request failed: ${res.status} ${res.statusText}`,
+          );
+          break;
+        }
+
+        const data = (await res.json()) as YouTubePlaylistItemsResponse;
+        playlistItems.push(...(data.items ?? []));
+        pageToken = data.nextPageToken;
+      } while (
+        pageToken &&
+        (maxResults === undefined || playlistItems.length < maxResults)
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch playlist items for channel ${channelId}: ${(error as Error).message}`,
+      );
+      return [];
+    }
+
+    const limitedItems =
+      maxResults !== undefined
+        ? playlistItems.slice(0, maxResults)
+        : playlistItems;
+
+    if (limitedItems.length === 0) return [];
+
+    const videoIds = limitedItems.map((i) => i.contentDetails.videoId);
+
+    // videos.list accepts max 50 IDs per request — batch if needed
+    const durationMap = new Map<string, string>();
+    try {
+      for (let i = 0; i < videoIds.length; i += pageSize) {
+        if (i > 0) await this.sleep(requestDelayMs);
+        const batch = videoIds.slice(i, i + pageSize);
+        const videosUrl =
+          `${this.baseUrl}/videos` +
+          `?part=contentDetails` +
+          `&id=${batch.join(',')}` +
+          `&key=${this.apiKey}`;
+
+        const res = await fetch(videosUrl, {
+          signal: AbortSignal.timeout(10000),
+          headers: { 'User-Agent': 'RSS-Feed-Processor/1.0' },
+        });
+
+        if (res.ok) {
+          const data = (await res.json()) as YouTubeVideosListResponse;
+          for (const video of data.items ?? []) {
+            durationMap.set(video.id, video.contentDetails.duration);
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to fetch video durations for channel ${channelId}: ${(error as Error).message}`,
+      );
+    }
+
+    return limitedItems.map((item) => {
+      const videoId = item.contentDetails.videoId;
+      const thumbnails = item.snippet.thumbnails;
+      const thumbnail = (
+        thumbnails.maxres ??
+        thumbnails.standard ??
+        thumbnails.high ??
+        thumbnails.medium ??
+        thumbnails.default
+      )?.url;
+
+      return {
+        title: item.snippet.title,
+        link: `https://www.youtube.com/watch?v=${videoId}`,
+        pubDate:
+          item.contentDetails.videoPublishedAt || item.snippet.publishedAt,
+        content: item.snippet.description,
+        thumbnail,
+        duration: durationMap.get(videoId),
+      };
+    });
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
