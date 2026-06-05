@@ -50,6 +50,20 @@ export class SubscriptionService {
   async findActiveByUserId(
     userId: string,
   ): Promise<UserSubscriptionResponseDto> {
+    const isStripeEnabled = process.env.ENABLE_STRIPE === 'true';
+
+    if (!isStripeEnabled) {
+      const currentDate = new Date();
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(currentDate.getFullYear() + 1);
+      return {
+        status: 'active',
+        user_id: userId,
+        current_period_start: currentDate,
+        current_period_end: oneYearFromNow,
+      };
+    }
+
     const activeSubscription = await this.prisma.user_subscriptions.findFirst({
       select: {
         id: true,
