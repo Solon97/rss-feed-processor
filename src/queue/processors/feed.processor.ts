@@ -51,7 +51,7 @@ export class FeedProcessor {
           );
         }
         // undefined = fetch all pages; 10 = regular sync limit
-        const maxResults = isInitialImport ? undefined : 10;
+        const maxResults = isInitialImport ? 100 : 10;
         feedItems = await this.youtubeApiService.getChannelVideos(
           channelId,
           maxResults,
